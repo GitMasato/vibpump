@@ -46,6 +46,10 @@ def call_image(
       input_data = image.get_input_list(args.movie, "captured")
     elif args.type == "cropped":
       input_data = image.get_input_list(args.movie, "cropped")
+    elif args.type == "graphed":
+      input_data = image.get_input_list(args.movie, "graphed")
+    elif args.type == "measured":
+      input_data = image.get_input_list(args.movie, "measured")
     elif args.type == "resized":
       input_data = image.get_input_list(args.movie, "resized")
     elif args.type == "rotated":
@@ -56,18 +60,20 @@ def call_image(
   if not input_data:
     sys.exit("no input exists!")
 
-  print(input_data)
-
   for opt in opt_args:
     if opt == "--binarize":
       input_data = api.binarize(input_data)
-    if opt == "--capture":
+    elif opt == "--capture":
       input_data = api.capture(input_data)
-    if opt == "--crop":
+    elif opt == "--crop":
       input_data = api.crop(input_data)
-    if opt == "--resize":
+    elif opt == "--graph":
+      input_data = image.graph(input_data)
+    elif opt == "--measure":
+      input_data = image.measure(input_data, movie_list)
+    elif opt == "--resize":
       input_data = api.resize(input_data)
-    if opt == "--rotate":
+    elif opt == "--rotate":
       input_data = api.rotate(input_data)
 
 
@@ -125,10 +131,24 @@ def cli_execution():
     "--binarize", action="store_true", help="to enable binarize process" + "\n ",
   )
   parser_image.add_argument(
-    "--capture", action="store_true", help="to enable capture process" + "\n ",
+    "--capture",
+    action="store_true",
+    help="to enable capture process, requiring 'movie' type input"
+    + "\nthis process should be executed first, or no '--type' option is selected."
+    + "\n ",
   )
   parser_image.add_argument(
     "--crop", action="store_true", help="to enable crop process" + "\n ",
+  )
+  parser_image.add_argument(
+    "--graph",
+    action="store_true",
+    help="to enable graph process, requiring 'measured' type input" + "\n ",
+  )
+  parser_image.add_argument(
+    "--measure",
+    action="store_true",
+    help="to enable measure process, requiring 'binarized' type input" + "\n ",
   )
   parser_image.add_argument(
     "--resize", action="store_true", help="to enable resize process" + "\n ",

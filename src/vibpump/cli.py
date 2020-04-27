@@ -12,110 +12,152 @@ see usage '-h option'
 
 """
 import argparse
+import imghdr
+import pathlib
 import sys
 from typing import List
 from imgproc import api
-from imgproc import process
+from vibpump import image
 
 
-class AnimateAction(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
+def call_image(
+  args: argparse.Namespace, parser: argparse.ArgumentParser, opt_args: List[str]
+):
+  """call function when image command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["image", "--help"]))
 
-    para_dict = {"is_colored": False, "fps": 20.0}
+  if not args.movie:
+    sys.exit("no movie is given!")
 
-    for value in values:
-      s = value.split("=")
-      if len(s) == 2:
+  movie_list: List[str] = []
+  for movie in args.movie:
+    movie_path = pathlib.Path(movie)
+    if movie_path.is_file():
+      if imghdr.what(movie) is None:
+        movie_list.append(movie)
 
-        if s[0] == "is_colored" and (s[1] == "False" or "True"):
-          para_dict["is_colored"] = True if s[1] == "True" else False
+  if args.type:
+    if args.type == "binarized":
+      input_data = image.get_input_list(args.movie, "binarized")
+    elif args.type == "captured":
+      input_data = image.get_input_list(args.movie, "captured")
+    elif args.type == "cropped":
+      input_data = image.get_input_list(args.movie, "cropped")
+    elif args.type == "resized":
+      input_data = image.get_input_list(args.movie, "resized")
+    elif args.type == "rotated":
+      input_data = image.get_input_list(args.movie, "rotated")
+  else:
+    input_data = movie_list
 
-        if s[0] == "fps":
-          para_dict["fps"] = float(s[1])
+  if not input_data:
+    sys.exit("no input exists!")
 
-    setattr(namespace, self.dest, para_dict)
+  print(input_data)
 
-
-class BinarizeAction(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-
-    para_dict = {}
-
-    # for value in values:
-    #   s = value.split("=")
-    #   if len(s) == 2:
-
-    #     if s[0] == "is_colored" and (s[1] == "False" or "True"):
-    #       para_dict["is_colored"] = True if s[1] == "True" else False
-
-    #     if s[0] == "fps":
-    #       para_dict["fps"] = float(s[1])
-
-    setattr(namespace, self.dest, para_dict)
+  for opt in opt_args:
+    if opt == "--binarize":
+      input_data = api.binarize(input_data)
+    if opt == "--capture":
+      input_data = api.capture(input_data)
+    if opt == "--crop":
+      input_data = api.crop(input_data)
+    if opt == "--resize":
+      input_data = api.resize(input_data)
+    if opt == "--rotate":
+      input_data = api.rotate(input_data)
 
 
-def read_cli_argument() -> List[process.ABCProcess]:
-  """read and parse cli arguments
+def call_liggghts(
+  args: argparse.Namespace, parser: argparse.ArgumentParser, opt_args: List[str]
+):
+  """call function when liggghts command is given
+  """
+  pass
 
-  Returns:
-      List[process.ABCProcess]: list of sub-class of ABCProcess class
+
+def cli_execution():
+  """read, parse, and execute cli arguments
   """
   parser = argparse.ArgumentParser(
     prog="vibpump.py",
     formatter_class=argparse.RawTextHelpFormatter,
-    description="python package providing functions for vibpump project."
-    + "\noutput for experiment is generated in 'cv2' directory under current location.",
+    description="python package providing functions for vibpump project.",
+  )
+  subparsers = parser.add_subparsers()
+
+  parser_image = subparsers.add_parser(
+    "image",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="execute image-prcessing of experimental movies",
+    description="sub-command 'image': execute image prcessing of experimental movies"
+    + "\n\noutput is generated in 'cv2' directory under current location."
+    + "\nif multiple processes are enabled, input data is processed continuously"
+    + "\nin order of argument. (output in one process is given to the next process.)"
+    + "\nbecause capture process creates pictures from movie, this should be first."
+    + "\n\n'--movie' option means path of movie."
+    + "\nif '--type' is not selected, movie file itself is given as input."
+    + "\n\nif '--type' option is selected, pre-processed data for the movie in 'cv2'"
+    + "\ndirecotry under current location is given as input."
+    + "\nif pre-processed data does not exist, image process is not executed."
+    + "\n\nwhether '--type' is selected or not, movie file itself must exist."
+    + "\nif it does not exist, image process is not executed."
+    + "\n\n(see sub-option 'image -h')"
+    + "\n ",
+  )
+  parser_image.set_defaults(call=call_image)
+  parser_image.add_argument(
+    "--movie", nargs="*", type=str, metavar="path", help="movie file path" + "\n ",
+  )
+  parser_image.add_argument(
+    "--type",
+    choices=["binarized", "captured", "cropped", "rotated"],
+    help="target type"
+    + "\nif this is not selected, movie file itself is given as input."
+    + "\nif selected, pre-processed directory of this-type in 'cv2' direcotry"
+    + "\nunder current location is given as input."
+    + "\n ",
+  )
+  parser_image.add_argument(
+    "--binarize", action="store_true", help="to enable binarize process" + "\n ",
+  )
+  parser_image.add_argument(
+    "--capture", action="store_true", help="to enable capture process" + "\n ",
+  )
+  parser_image.add_argument(
+    "--crop", action="store_true", help="to enable crop process" + "\n ",
+  )
+  parser_image.add_argument(
+    "--resize", action="store_true", help="to enable resize process" + "\n ",
+  )
+  parser_image.add_argument(
+    "--rotate", action="store_true", help="to enable rotate process" + "\n ",
   )
 
-  parser.add_argument(
-    "--movie", nargs="*", type=str, metavar="path", help="movie path" + "\n ",
+  parser_liggghts = subparsers.add_parser(
+    "liggghts",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="support liggghts simulation",
+    description="sub-command 'liggghts': support liggghts simulation"
+    + "\n\nnot implemented",
   )
-  parser.add_argument(
-    "--animate",
-    nargs="*",
-    type=str,
-    metavar="dict",
-    action=AnimateAction,
-    help="is_colored=False fps=20.0 path of picture or directory where pictures are stored"
-    + "\nIf directory name is given,"
-    + "same process will be applied to all pictures in the directory"
-    + "\n ",
-  )
-  parser.add_argument(
-    "--binarize",
-    nargs="*",
-    type=str,
-    metavar="dict",
-    action=BinarizeAction,
-    help="is_colored=False fps=20.0 path of picture or directory where pictures are stored"
-    + "\nIf directory name is given,"
-    + "same process will be applied to all pictures in the directory"
-    + "\n ",
-  )
+  parser_liggghts.set_defaults(call=call_liggghts)
 
   if len(sys.argv) <= 1:
     sys.exit(parser.format_help())
 
   args = parser.parse_args()
-  print(args)
-
-  if not args.movie:
-    sys.exit("no movie is given!")
-
-  if type(args.animate) is dict:
-    print(args.animate)
-
-  if type(args.binarize) is dict:
-    print(args.binarize)
-
-  # return args.call(args, parser)
+  if args.call.__name__ == "call_image":
+    args.call(args, parser, sys.argv[2:])
 
 
 def main() -> None:
   """cli command main function
   """
-  read_cli_argument()
-  # image_process.execute()
+  cli_execution()
 
 
 if __name__ == "__main__":

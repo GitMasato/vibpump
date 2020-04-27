@@ -1,4 +1,4 @@
-# ma_vib_pump
+# vibpump package
 
-This package aims at providing support functions for vibration pump project and is
-created only for personal use.
+This package aims at providing supports for vibration pump project and is created only
+for personal use.

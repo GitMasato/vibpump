@@ -1,12 +1,12 @@
 """cli command for supporting vibpump projects.
 
-Experiments:
-Basic required arguments is movie name and process name. if no movie and process is given, error will be raised.
+image process:
+basic required arguments is movie name and process name. if no movie and process is given, error will be raised.
 
-Output data (after image process) will be generated in 'cv2/target-noExtension/process-name/target' directory under current location (e.g. (test.mp4) ./cv2/test/binarized/test.png).
+output data (after image process) will be generated in 'cv2/target-noExtension/process-name/target' directory under current location (e.g. (test.mp4) ./cv2/test/binarized/test.png).
 
-Simulation:
-This supports LIGGGHTS simulations.
+simulation:
+this supports LIGGGHTS simulations.
 
 see usage '-h option'
 
@@ -39,23 +39,24 @@ def call_image(
       if imghdr.what(movie) is None:
         movie_list.append(movie)
 
+  if not movie_list:
+    sys.exit("no movie exists!")
+
   if args.type:
     if args.type == "binarized":
-      input_data = image.get_input_list(args.movie, "binarized")
+      input_data = image.get_input_list(movie_list, "binarized")
     elif args.type == "captured":
-      input_data = image.get_input_list(args.movie, "captured")
+      input_data = image.get_input_list(movie_list, "captured")
     elif args.type == "cropped":
-      input_data = image.get_input_list(args.movie, "cropped")
+      input_data = image.get_input_list(movie_list, "cropped")
     elif args.type == "graphed":
-      input_data = image.get_input_list(args.movie, "graphed")
+      input_data = image.get_input_list(movie_list, "graphed")
     elif args.type == "measured":
-      input_data = image.get_input_list(args.movie, "measured")
-    elif args.type == "resized":
-      input_data = image.get_input_list(args.movie, "resized")
+      input_data = image.get_input_list(movie_list, "measured")
     elif args.type == "rotated":
-      input_data = image.get_input_list(args.movie, "rotated")
+      input_data = image.get_input_list(movie_list, "rotated")
   else:
-    input_data = movie_list
+    input_data = movie_list.copy()
 
   if not input_data:
     sys.exit("no input exists!")
@@ -71,18 +72,32 @@ def call_image(
       input_data = image.graph(input_data)
     elif opt == "--measure":
       input_data = image.measure(input_data, movie_list)
-    elif opt == "--resize":
-      input_data = api.resize(input_data)
     elif opt == "--rotate":
       input_data = api.rotate(input_data)
 
 
-def call_liggghts(
-  args: argparse.Namespace, parser: argparse.ArgumentParser, opt_args: List[str]
-):
+def call_liggghts(args: argparse.Namespace, parser: argparse.ArgumentParser):
   """call function when liggghts command is given
   """
-  pass
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "--help"]))
+
+
+def call_liggghts_setup(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts setup command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "setup", "--help"]))
+
+
+def call_liggghts_analyze(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts analyze command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "analyze", "--help"]))
 
 
 def cli_execution():
@@ -123,7 +138,7 @@ def cli_execution():
     choices=["binarized", "captured", "cropped", "rotated"],
     help="target type"
     + "\nif this is not selected, movie file itself is given as input."
-    + "\nif selected, pre-processed directory of this-type in 'cv2' direcotry"
+    + "\nif selected, the pre-processed directory of movie in 'cv2' direcotry"
     + "\nunder current location is given as input."
     + "\n ",
   )
@@ -133,8 +148,8 @@ def cli_execution():
   parser_image.add_argument(
     "--capture",
     action="store_true",
-    help="to enable capture process, requiring 'movie' type input"
-    + "\nthis process should be executed first, or no '--type' option is selected."
+    help="to enable capture process, requiring 'movie' type input (no '--type' option)"
+    + "\nthis process should be executed first."
     + "\n ",
   )
   parser_image.add_argument(
@@ -151,9 +166,6 @@ def cli_execution():
     help="to enable measure process, requiring 'binarized' type input" + "\n ",
   )
   parser_image.add_argument(
-    "--resize", action="store_true", help="to enable resize process" + "\n ",
-  )
-  parser_image.add_argument(
     "--rotate", action="store_true", help="to enable rotate process" + "\n ",
   )
 
@@ -165,6 +177,31 @@ def cli_execution():
     + "\n\nnot implemented",
   )
   parser_liggghts.set_defaults(call=call_liggghts)
+  subparsers_liggghts = parser_liggghts.add_subparsers()
+
+  subparser_liggghts = subparsers_liggghts.add_parser(
+    "setup",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="support liggghts simulation",
+    description="sub-command 'liggghts.setup': support liggghts simulation"
+    + "\n\nnot implemented",
+  )
+  subparser_liggghts.add_argument(
+    "--target", nargs="*", type=str, metavar="path", help="target path" + "\n ",
+  )
+  parser_liggghts.set_defaults(call=call_liggghts_setup)
+
+  subparser_liggghts = subparsers_liggghts.add_parser(
+    "analyze",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="support liggghts simulation",
+    description="sub-command 'liggghts.analyze': support liggghts simulation"
+    + "\n\nnot implemented",
+  )
+  subparser_liggghts.add_argument(
+    "--target", nargs="*", type=str, metavar="path", help="target path" + "\n ",
+  )
+  parser_liggghts.set_defaults(call=call_liggghts_analyze)
 
   if len(sys.argv) <= 1:
     sys.exit(parser.format_help())
@@ -172,6 +209,8 @@ def cli_execution():
   args = parser.parse_args()
   if args.call.__name__ == "call_image":
     args.call(args, parser, sys.argv[2:])
+  else:
+    args.call(args, parser)
 
 
 def main() -> None:

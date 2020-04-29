@@ -19,6 +19,7 @@
     "--ignore=E111,E114,E121,E203,E265,E501,W503,W504,W605",
   ],
   "cSpell.words": [
+    "LBUTTONUP",
     "arange",
     "bashcomp",
     "binarization",
@@ -27,6 +28,7 @@
     "cmap",
     "dsize",
     "fourcc",
+    "imghdr",
     "imgproc",
     "imread",
     "imshow",

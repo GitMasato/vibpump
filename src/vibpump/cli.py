@@ -3,7 +3,7 @@
 image process:
 basic required arguments is movie name and process name. if no movie and process is given, error will be raised.
 
-output data (after image process) will be generated in 'cv2/target-noExtension/process-name/target' directory under current location (e.g. (test.mp4) ./cv2/test/binarized/test.png).
+output data (after image process) will be generated in 'cv2/target-noExtension/process-name/target' directory under current location (e.g. (test.mp4) ./cv2/test/binarized/test.png), except for 'measure' and 'graph' processes which will create '**_vib.csv' and '**_vib.png' data in ./cv2 directory.
 
 simulation:
 this supports LIGGGHTS simulations.
@@ -29,51 +29,48 @@ def call_image(
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["image", "--help"]))
 
-  if not args.movie:
-    sys.exit("no movie is given!")
+  if {"--binarize", "--capture", "--crop", "--measure", "--rotate"} & set(opt_args):
 
-  movie_list: List[str] = []
-  for movie in args.movie:
-    movie_path = pathlib.Path(movie)
-    if movie_path.is_file():
-      if imghdr.what(movie) is None:
-        movie_list.append(movie)
+    movie_list: List[str] = []
+    if args.movie:
+      for movie in args.movie:
+        movie_path = pathlib.Path(movie)
+        if movie_path.is_file():
+          if imghdr.what(movie) is None:
+            movie_list.append(movie)
 
-  if not movie_list:
-    sys.exit("no movie exists!")
+    if not movie_list:
+      sys.exit("no movie exists!")
 
-  if args.type:
-    if args.type == "binarized":
-      input_data = image.get_input_list(movie_list, "binarized")
-    elif args.type == "captured":
-      input_data = image.get_input_list(movie_list, "captured")
-    elif args.type == "cropped":
-      input_data = image.get_input_list(movie_list, "cropped")
-    elif args.type == "graphed":
-      input_data = image.get_input_list(movie_list, "graphed")
-    elif args.type == "measured":
-      input_data = image.get_input_list(movie_list, "measured")
-    elif args.type == "rotated":
-      input_data = image.get_input_list(movie_list, "rotated")
-  else:
-    input_data = movie_list.copy()
+    if args.type:
+      if args.type == "binarized":
+        input_data = image.get_input_list(movie_list, "binarized")
+      elif args.type == "captured":
+        input_data = image.get_input_list(movie_list, "captured")
+      elif args.type == "cropped":
+        input_data = image.get_input_list(movie_list, "cropped")
+      elif args.type == "rotated":
+        input_data = image.get_input_list(movie_list, "rotated")
+    else:
+      input_data = movie_list.copy()
 
-  if not input_data:
-    sys.exit("no input exists!")
+    if not input_data:
+      sys.exit("no input exists!")
 
-  for opt in opt_args:
-    if opt == "--binarize":
-      input_data = api.binarize(input_data)
-    elif opt == "--capture":
-      input_data = api.capture(input_data)
-    elif opt == "--crop":
-      input_data = api.crop(input_data)
-    elif opt == "--graph":
-      input_data = image.graph(input_data)
-    elif opt == "--measure":
-      input_data = image.measure(input_data, movie_list)
-    elif opt == "--rotate":
-      input_data = api.rotate(input_data)
+    for opt in opt_args:
+      if opt == "--binarize":
+        input_data = api.binarize(input_data)
+      elif opt == "--capture":
+        input_data = api.capture(input_data)
+      elif opt == "--crop":
+        input_data = api.crop(input_data)
+      elif opt == "--measure":
+        input_data = image.measure(input_data, movie_list)
+      elif opt == "--rotate":
+        input_data = api.rotate(input_data)
+
+  if set(["--graph"]) & set(opt_args):
+    image.graph()
 
 
 def call_liggghts(args: argparse.Namespace, parser: argparse.ArgumentParser):
@@ -116,16 +113,19 @@ def cli_execution():
     help="execute image-prcessing of experimental movies",
     description="sub-command 'image': execute image prcessing of experimental movies"
     + "\n\noutput is generated in 'cv2' directory under current location."
-    + "\nif multiple processes are enabled, input data is processed continuously"
+    + "\nif multiple processes are selected, input data is processed continuously"
     + "\nin order of argument. (output in one process is given to the next process.)"
-    + "\nbecause capture process creates pictures from movie, this should be first."
+    + "\n'--graph' process is exceptional and executed at the end."
     + "\n\n'--movie' option means path of movie."
     + "\nif '--type' is not selected, movie file itself is given as input."
-    + "\n\nif '--type' option is selected, pre-processed data for the movie in 'cv2'"
+    + "\nif '--type' option is selected, pre-processed data for the movie in 'cv2'"
     + "\ndirecotry under current location is given as input."
     + "\nif pre-processed data does not exist, image process is not executed."
     + "\n\nwhether '--type' is selected or not, movie file itself must exist."
-    + "\nif it does not exist, image process is not executed."
+    + "\nif it does not exist, image process is not executed except for '--graph'."
+    + "\n'--measure' option creates '**_vib.csv' that cannot be given to other process."
+    + "\n'--graph' visualize .csv file. if any '_**vib.csv' exists in 'cv2' directory,"
+    + "\n'--graph' process can run and does not require movie or pre-processed data."
     + "\n\n(see sub-option 'image -h')"
     + "\n ",
   )
@@ -158,12 +158,17 @@ def cli_execution():
   parser_image.add_argument(
     "--graph",
     action="store_true",
-    help="to enable graph process, requiring 'measured' type input" + "\n ",
+    help="to visualize measured data, requiring csv file in 'cv2' directory"
+    + "\nthis creates .png image and python script for visualization."
+    + "\n ",
   )
   parser_image.add_argument(
     "--measure",
     action="store_true",
-    help="to enable measure process, requiring 'binarized' type input" + "\n ",
+    help="to measure climbing height, requiring 'binarized' type input"
+    + "\nthis creates .csv file in 'cv2' directory, and output file name is decided"
+    + "\nusing first movie file name. this should be executed just after 'binarize'."
+    + "\n ",
   )
   parser_image.add_argument(
     "--rotate", action="store_true", help="to enable rotate process" + "\n ",

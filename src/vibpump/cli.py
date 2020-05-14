@@ -18,6 +18,7 @@ import sys
 from typing import List
 from imgproc import api
 from vibpump import image
+from vibpump import liggghts
 
 
 def call_image(
@@ -88,6 +89,17 @@ def call_liggghts_setup(args: argparse.Namespace, parser: argparse.ArgumentParse
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "setup", "--help"]))
 
+  ini_list: List[str] = []
+  if args.ini:
+    for ini in args.ini:
+      if ".ini-liggghts" in ini:
+        ini_list.append(ini)
+
+  if not ini_list:
+    sys.exit("no .ini-liggghts file exists!")
+
+  liggghts.create_jobs(ini_list, args.cluster)
+
 
 def call_liggghts_analyze(args: argparse.Namespace, parser: argparse.ArgumentParser):
   """call function when liggghts analyze command is given
@@ -95,6 +107,16 @@ def call_liggghts_analyze(args: argparse.Namespace, parser: argparse.ArgumentPar
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "analyze", "--help"]))
+
+  ini_list: List[str] = []
+  if args.iniFile:
+    for ini in args.iniFile:
+      ini_path = pathlib.Path(ini)
+      if ini_path.is_file():
+        ini_list.append(ini)
+
+  if not ini_list:
+    sys.exit("no .iniFile exists!")
 
 
 def cli_execution():
@@ -107,11 +129,12 @@ def cli_execution():
   )
   subparsers = parser.add_subparsers()
 
+  # parser for image function
   parser_image = subparsers.add_parser(
     "image",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="execute image-prcessing of experimental movies",
-    description="sub-command 'image': execute image prcessing of experimental movies"
+    help="command for executing image-prcessing of experimental movies",
+    description="command 'image': execute image prcessing of experimental movies"
     + "\n\noutput is generated in 'cv2' directory under current location."
     + "\nif multiple processes are selected, input data is processed continuously"
     + "\nin order of argument. (output in one process is given to the next process.)"
@@ -126,7 +149,7 @@ def cli_execution():
     + "\n'--measure' option creates '**_vib.csv' that cannot be given to other process."
     + "\n'--graph' visualize .csv file. if any '_**vib.csv' exists in 'cv2' directory,"
     + "\n'--graph' process can run and does not require movie or pre-processed data."
-    + "\n\n(see sub-option 'image -h')"
+    + "\n\n(see sub-option 'vibpump image -h')"
     + "\n ",
   )
   parser_image.set_defaults(call=call_image)
@@ -174,39 +197,85 @@ def cli_execution():
     "--rotate", action="store_true", help="to enable rotate process" + "\n ",
   )
 
+  # parser for liggghts function
   parser_liggghts = subparsers.add_parser(
     "liggghts",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="support liggghts simulation",
-    description="sub-command 'liggghts': support liggghts simulation"
-    + "\n\nnot implemented",
+    help="command for supporting liggghts simulation",
+    description="command 'liggghts': support liggghts simulation"
+    + "\n\n(see sub-option 'vibpump liggghts -h')"
+    + "\n ",
   )
   parser_liggghts.set_defaults(call=call_liggghts)
   subparsers_liggghts = parser_liggghts.add_subparsers()
 
-  subparser_liggghts = subparsers_liggghts.add_parser(
+  # parser for liggghts setup function
+  subparser_setup = subparsers_liggghts.add_parser(
     "setup",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="support liggghts simulation",
-    description="sub-command 'liggghts.setup': support liggghts simulation"
-    + "\n\nnot implemented",
+    help="command for preparing simulation",
+    description="command 'liggghts setup': prepare simulation"
+    + "\n\n"
+    + "\n"
+    + "\n\n(see sub-option 'vibpump liggghts setup -h')"
+    + "\n ",
   )
-  subparser_liggghts.add_argument(
-    "--target", nargs="*", type=str, metavar="path", help="target path" + "\n ",
+  subparser_setup.add_argument(
+    "--ini",
+    nargs="*",
+    type=str,
+    metavar="path",
+    help="path to ini file (**.ini-liggghts)" + "\n ",
   )
-  parser_liggghts.set_defaults(call=call_liggghts_setup)
+  subparser_setup.add_argument(
+    "--cluster",
+    action="store_true",
+    help="to generate files for running on cluster" + "\n ",
+  )
+  subparser_setup.add_argument(
+    "--execute",
+    action="store_true",
+    help="to start simulations using generated files" + "\n ",
+  )
+  subparser_setup.set_defaults(call=call_liggghts_setup)
 
-  subparser_liggghts = subparsers_liggghts.add_parser(
+  # parser for liggghts analyze function
+  subparser_analyze = subparsers_liggghts.add_parser(
     "analyze",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="support liggghts simulation",
-    description="sub-command 'liggghts.analyze': support liggghts simulation"
-    + "\n\nnot implemented",
+    help="command for analyzing simulation results",
+    description="command 'liggghts setup': analyze simulation results"
+    + "\n\n(see sub-option 'vibpump liggghts analyze -h')"
+    + "\n ",
   )
-  subparser_liggghts.add_argument(
-    "--target", nargs="*", type=str, metavar="path", help="target path" + "\n ",
+  subparser_analyze.add_argument(
+    "--ini",
+    nargs="*",
+    type=str,
+    metavar="path",
+    help="path to ini file (**.ini-liggghts)" + "\n ",
   )
-  parser_liggghts.set_defaults(call=call_liggghts_analyze)
+  subparser_analyze.add_argument(
+    "--cluster",
+    action="store_true",
+    help="to generate files for running on cluster" + "\n ",
+  )
+  subparser_analyze.add_argument(
+    "--animate",
+    action="store_true",
+    help="to create movie file from simulation results" + "\n ",
+  )
+  subparser_analyze.add_argument(
+    "--measureHeight",
+    action="store_true",
+    help="to measure climbing height from simulation results" + "\n ",
+  )
+  subparser_analyze.add_argument(
+    "--graphHeight",
+    action="store_true",
+    help="to graph climbing height results" + "\n ",
+  )
+  subparser_analyze.set_defaults(call=call_liggghts_analyze)
 
   if len(sys.argv) <= 1:
     sys.exit(parser.format_help())

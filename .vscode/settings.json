@@ -19,7 +19,9 @@
     "--ignore=E111,E114,E121,E203,E265,E501,W503,W504,W605",
   ],
   "cSpell.words": [
+    "HCOLL",
     "LBUTTONUP",
+    "MCAST",
     "arange",
     "bashcomp",
     "binarization",
@@ -33,10 +35,16 @@
     "imread",
     "imshow",
     "imwrite",
+    "isnumeric",
     "liggghts",
+    "mpirun",
     "nargs",
     "numpy",
+    "openmpi",
+    "orte",
     "pyplot",
+    "qsub",
+    "ulimit",
     "vibpump"
   ],
 }

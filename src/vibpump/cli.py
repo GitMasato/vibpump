@@ -1,12 +1,16 @@
 """cli command for supporting vibpump projects.
 
-image process:
-basic required arguments is movie name and process name. if no movie and process is given, error will be raised.
+image commad:
+basic required arguments is movie name and process name.
+if no movie and process is given, error will be raised.
 
-output data (after image process) will be generated in 'cv2/target-noExtension/process-name/target' directory under current location (e.g. (test.mp4) ./cv2/test/binarized/test.png), except for 'measure' and 'graph' processes which will create '**_vib.csv' and '**_vib.png' data in ./cv2 directory.
+output data (after image process) will be generated in
+'cv2/target-noExtension/process-name/target' directory under current location
+(e.g. (test.mp4) ./cv2/test/binarized/test.png).
 
-simulation:
-this supports LIGGGHTS simulations.
+liggghts command:
+this supports LIGGGHTS simulations. (subcommands: 'preprocess', 'postprocess')
+basic required arguments is ini file name (**.ini).
 
 see usage '-h option'
 
@@ -82,41 +86,53 @@ def call_liggghts(args: argparse.Namespace, parser: argparse.ArgumentParser):
     sys.exit(parser.parse_args(["liggghts", "--help"]))
 
 
-def call_liggghts_setup(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts setup command is given
+def call_liggghts_pre(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts preprocess command is given
   """
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "setup", "--help"]))
+    sys.exit(parser.parse_args(["liggghts", "preprocess", "--help"]))
 
   ini_list: List[str] = []
   if args.ini:
     for ini in args.ini:
-      if ".ini-liggghts" in ini:
+      if ".ini" in ini:
         ini_list.append(ini)
 
   if not ini_list:
-    sys.exit("no .ini-liggghts file exists!")
+    sys.exit("no .ini file exists!")
 
-  liggghts.create_jobs(ini_list, args.cluster)
+  liggghts.setup_simulation(ini_list, args.cluster)
+
+  if args.execute:
+    liggghts.execute_simulation(ini_list, args.cluster)
+    liggghts.animate(ini_list, args.cluster)
 
 
-def call_liggghts_analyze(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts analyze command is given
+def call_liggghts_post(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts postprocess command is given
   """
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "analyze", "--help"]))
+    sys.exit(parser.parse_args(["liggghts", "postprocess", "--help"]))
 
   ini_list: List[str] = []
-  if args.iniFile:
-    for ini in args.iniFile:
-      ini_path = pathlib.Path(ini)
-      if ini_path.is_file():
+  if args.ini:
+    for ini in args.ini:
+      if ".ini" in ini:
         ini_list.append(ini)
 
   if not ini_list:
-    sys.exit("no .iniFile exists!")
+    sys.exit("no .ini file exists!")
+
+  if args.animate:
+    liggghts.animate(ini_list, args.cluster, args.fps)
+
+  if args.measureHeight:
+    liggghts.measure_height(ini_list, args.cluster)
+
+  if args.graphHeight:
+    liggghts.graph_height(ini_list, args.cluster)
 
 
 def cli_execution():
@@ -134,23 +150,22 @@ def cli_execution():
     "image",
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for executing image-prcessing of experimental movies",
-    description="command 'image': execute image prcessing of experimental movies"
-    + "\n\noutput is generated in 'cv2' directory under current location."
-    + "\nif multiple processes are selected, input data is processed continuously"
-    + "\nin order of argument. (output in one process is given to the next process.)"
-    + "\n'--graph' process is exceptional and executed at the end."
-    + "\n\n'--movie' option means path of movie."
-    + "\nif '--type' is not selected, movie file itself is given as input."
-    + "\nif '--type' option is selected, pre-processed data for the movie in 'cv2'"
-    + "\ndirecotry under current location is given as input."
-    + "\nif pre-processed data does not exist, image process is not executed."
-    + "\n\nwhether '--type' is selected or not, movie file itself must exist."
-    + "\nif it does not exist, image process is not executed except for '--graph'."
-    + "\n'--measure' option creates '**_vib.csv' that cannot be given to other process."
-    + "\n'--graph' visualize .csv file. if any '_**vib.csv' exists in 'cv2' directory,"
-    + "\n'--graph' process can run and does not require movie or pre-processed data."
-    + "\n\n(see sub-option 'vibpump image -h')"
-    + "\n ",
+    description="command 'image': execute image prcessing of experimental movies\n\n"
+    + "output is generated in 'cv2' directory under current location.\n"
+    + "if multiple processes are selected, input data is processed continuously\n"
+    + "in order of argument. (output in one process is given to the next process.)\n"
+    + "'--graph' process is exceptional and executed at the end.\n\n"
+    + "'--movie' option means path of movie.\n"
+    + "if '--type' is not selected, movie file itself is given as input.\n"
+    + "if '--type' option is selected, pre-processed data for the movie in 'cv2'\n"
+    + "direcotry under current location is given as input.\n"
+    + "if pre-processed data does not exist, image process is not executed.\n\n"
+    + "whether '--type' is selected or not, movie file itself must exist.\n"
+    + "if it does not exist, image process is not executed except for '--graph'.\n"
+    + "'--measure' option creates '**_vib.csv' that cannot be given to other process.\n"
+    + "'--graph' visualize .csv file. if any '_**vib.csv' exists in 'cv2' directory,\n"
+    + "'--graph' process can run and does not require movie or pre-processed data.\n\n"
+    + "(see sub-option 'vibpump image -h')\n",
   )
   parser_image.set_defaults(call=call_image)
   parser_image.add_argument(
@@ -159,11 +174,10 @@ def cli_execution():
   parser_image.add_argument(
     "--type",
     choices=["binarized", "captured", "cropped", "rotated"],
-    help="target type"
-    + "\nif this is not selected, movie file itself is given as input."
-    + "\nif selected, the pre-processed directory of movie in 'cv2' direcotry"
-    + "\nunder current location is given as input."
-    + "\n ",
+    help="target type\n"
+    + "if this is not selected, movie file itself is given as input.\n"
+    + "if selected, the pre-processed directory of movie in 'cv2' direcotry\n"
+    + "under current location is given as input.\n",
   )
   parser_image.add_argument(
     "--binarize", action="store_true", help="to enable binarize process" + "\n ",
@@ -171,9 +185,8 @@ def cli_execution():
   parser_image.add_argument(
     "--capture",
     action="store_true",
-    help="to enable capture process, requiring 'movie' type input (no '--type' option)"
-    + "\nthis process should be executed first."
-    + "\n ",
+    help="to enable capture process, requiring 'movie' input (no '--type' option)\n"
+    + "this process should be executed first.\n",
   )
   parser_image.add_argument(
     "--crop", action="store_true", help="to enable crop process" + "\n ",
@@ -181,17 +194,15 @@ def cli_execution():
   parser_image.add_argument(
     "--graph",
     action="store_true",
-    help="to visualize measured data, requiring csv file in 'cv2' directory"
-    + "\nthis creates .png image and python script for visualization."
-    + "\n ",
+    help="to visualize measured data, requiring csv file in 'cv2' directory\n"
+    + "this creates .png image and python script for visualization.\n",
   )
   parser_image.add_argument(
     "--measure",
     action="store_true",
-    help="to measure climbing height, requiring 'binarized' type input"
-    + "\nthis creates .csv file in 'cv2' directory, and output file name is decided"
-    + "\nusing first movie file name. this should be executed just after 'binarize'."
-    + "\n ",
+    help="to measure climbing height, requiring 'binarized' type input\n"
+    + "this creates .csv file in 'cv2' directory, and output file name is decided\n"
+    + "using first movie file name. this should be executed just after 'binarize'.\n",
   )
   parser_image.add_argument(
     "--rotate", action="store_true", help="to enable rotate process" + "\n ",
@@ -202,80 +213,85 @@ def cli_execution():
     "liggghts",
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for supporting liggghts simulation",
-    description="command 'liggghts': support liggghts simulation"
-    + "\n\n(see sub-option 'vibpump liggghts -h')"
-    + "\n ",
+    description="command 'liggghts': support liggghts simulation\n\n"
+    + "(see sub-option 'vibpump liggghts -h')\n",
   )
   parser_liggghts.set_defaults(call=call_liggghts)
   subparsers_liggghts = parser_liggghts.add_subparsers()
 
   # parser for liggghts setup function
-  subparser_setup = subparsers_liggghts.add_parser(
-    "setup",
+  subparser_pre = subparsers_liggghts.add_parser(
+    "pre",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="command for preparing simulation",
-    description="command 'liggghts setup': prepare simulation"
-    + "\n\n"
-    + "\n"
-    + "\n\n(see sub-option 'vibpump liggghts setup -h')"
-    + "\n ",
+    help="command for preprocess of simulation",
+    description="command 'liggghts pre': preprocess of simulation\n\n"
+    + "basic required arguments is ini file (**.ini. '--ini').\n\n"
+    + "(see sub-option 'vibpump liggghts pre -h')\n",
   )
-  subparser_setup.add_argument(
+  subparser_pre.add_argument(
     "--ini",
     nargs="*",
     type=str,
     metavar="path",
-    help="path to ini file (**.ini-liggghts)" + "\n ",
+    help="path to ini file (**.ini)" + "\n ",
   )
-  subparser_setup.add_argument(
+  subparser_pre.add_argument(
     "--cluster",
     action="store_true",
     help="to generate files for running on cluster" + "\n ",
   )
-  subparser_setup.add_argument(
+  subparser_pre.add_argument(
     "--execute",
     action="store_true",
     help="to start simulations using generated files" + "\n ",
   )
-  subparser_setup.set_defaults(call=call_liggghts_setup)
+  subparser_pre.set_defaults(call=call_liggghts_pre)
 
   # parser for liggghts analyze function
-  subparser_analyze = subparsers_liggghts.add_parser(
-    "analyze",
+  subparser_post = subparsers_liggghts.add_parser(
+    "post",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="command for analyzing simulation results",
-    description="command 'liggghts setup': analyze simulation results"
-    + "\n\n(see sub-option 'vibpump liggghts analyze -h')"
-    + "\n ",
+    help="command for postprocess of simulation",
+    description="command 'liggghts post': postprocess of simulation\n\n"
+    + "basic required arguments is ini file (**.ini. '--ini').\n\n"
+    + "(see sub-option 'vibpump liggghts post -h')\n",
   )
-  subparser_analyze.add_argument(
+  subparser_post.add_argument(
     "--ini",
     nargs="*",
     type=str,
     metavar="path",
-    help="path to ini file (**.ini-liggghts)" + "\n ",
+    help="path to ini file (**.ini)" + "\n ",
   )
-  subparser_analyze.add_argument(
+  subparser_post.add_argument(
     "--cluster",
     action="store_true",
     help="to generate files for running on cluster" + "\n ",
   )
-  subparser_analyze.add_argument(
+  subparser_post.add_argument(
     "--animate",
     action="store_true",
     help="to create movie file from simulation results" + "\n ",
   )
-  subparser_analyze.add_argument(
+
+  subparser_post.add_argument(
+    "--fps",
+    type=int,
+    metavar="fps",
+    default=None,
+    help="fps when to create movie file from simulation results" + "\n ",
+  )
+  subparser_post.add_argument(
     "--measureHeight",
     action="store_true",
     help="to measure climbing height from simulation results" + "\n ",
   )
-  subparser_analyze.add_argument(
+  subparser_post.add_argument(
     "--graphHeight",
     action="store_true",
     help="to graph climbing height results" + "\n ",
   )
-  subparser_analyze.set_defaults(call=call_liggghts_analyze)
+  subparser_post.set_defaults(call=call_liggghts_post)
 
   if len(sys.argv) <= 1:
     sys.exit(parser.format_help())

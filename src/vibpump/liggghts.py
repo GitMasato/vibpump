@@ -98,7 +98,7 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
         f.write(" --hostfile {0}".format(hostfile))
         f.write(" --mca opal_event_include poll")
         f.write(" --mca orte_base_help_aggregate 0")
-        f.write(" --mca btl_openib_warn_default_gid_prefix to 0")
+        f.write(" --mca btl_openib_warn_default_gid_prefix 0")
         f.write(' bash -c "ulimit -s 10240 && {0} < {1}"\n\n'.format(lmp, ini_script))
 
 
@@ -372,7 +372,7 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
         f.write(" --hostfile {0}".format(job_dir + "/hostfile"))
         f.write(" --mca opal_event_include poll")
         f.write(" --mca orte_base_help_aggregate 0")
-        f.write(" --mca btl_openib_warn_default_gid_prefix to 0")
+        f.write(" --mca btl_openib_warn_default_gid_prefix 0")
         f.write(
           ' bash -c "ulimit -s 10240 && {0} --use-offscreen-rendering {1}\n\n'.format(
             pvbatch, animate_py

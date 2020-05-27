@@ -1,9 +1,9 @@
 """liggghts module containing support functions for simulations
 """
 # import csv
-# import cv2
 # import inspect
 # import numpy
+import cv2
 import math
 import pathlib
 import re
@@ -32,6 +32,7 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
 
     sim_path = pathlib.Path(pathlib.Path.cwd() / pathlib.Path(ini).stem)
     sim_path.mkdir(parents=True, exist_ok=True)
+    home = str(pathlib.Path.home().resolve())
     sim_exe_sh = str(sim_path) + "/sim_exe.sh"
     qsub_sim_exe_sh = str(sim_path) + "/qsub_sim_exe.sh"
 
@@ -44,15 +45,15 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
 
     for idx, job in enumerate(jobs):
 
-      np = parallels[idx]
       job_dir = str(pathlib.Path(sim_path / job))
-      sim_sh = job_dir + "/sim.sh"
-      ini_script = job_dir + "/ini.script"
-      lmp = str(pathlib.Path.home()) + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
-
       if pathlib.Path(job_dir).is_dir():
         shutil.rmtree(job_dir)
+
       pathlib.Path(job_dir).mkdir(parents=True)
+      np = parallels[idx]
+      sim_sh = job_dir + "/sim.sh"
+      ini_script = job_dir + "/ini.script"
+      lmp = home + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
 
       with open(sim_exe_sh, "a") as f:
         f.write("cd {0}\n".format(job_dir))
@@ -71,7 +72,7 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
 
       qsub_sim_sh = job_dir + "/qsub_sim.sh"
       hostfile = job_dir + "/hostfile"
-      vtk = str(pathlib.Path.home()) + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
+      vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
 
       with open(qsub_sim_exe_sh, "a") as f:
         f.write("cd {0}\n".format(job_dir))
@@ -85,9 +86,10 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
         f.write("#!/bin/bash\n\n")
         f.write("#$ -cwd\n")
         f.write("#$ -N {0}\n".format(job))
-        f.write("#$ -eo log.liggghts\n")
+        f.write("#$ -o stdout.liggghts\n")
+        f.write("#$ -e stderr.liggghts\n")
         f.write("#$ -M Masato.Adachi@dlr.de\n")
-        f.write("#$ -m ae\n\n")
+        f.write("#$ -m es\n\n")
 
         f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
         f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
@@ -97,7 +99,7 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
         f.write(" --mca opal_event_include poll")
         f.write(" --mca orte_base_help_aggregate 0")
         f.write(" --mca btl_openib_warn_default_gid_prefix to 0")
-        f.write(' bash -c "ulimit -s 10240 && {0} < {1}\n\n'.format(lmp, ini_script))
+        f.write(' bash -c "ulimit -s 10240 && {0} < {1}"\n\n'.format(lmp, ini_script))
 
 
 def execute_simulation(ini_list: List[str], is_cluster: bool = False):
@@ -347,8 +349,8 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
         continue
 
       qsub_animate_sh = animate_dir + "/qsub_animate.sh"
-      pvbatch = str(pathlib.Path.home()) + "/build/paraview/bin/pvbatch"
-      pvbatch_lib = str(pathlib.Path.home()) + "/build/paraview/lib"
+      pvbatch = str(pathlib.Path.home().resolve()) + "/build/paraview/bin/pvbatch"
+      pvbatch_lib = str(pathlib.Path.home().resolve()) + "/build/paraview/lib"
       ffmpeg = "/usr/bin/ffmpeg"
 
       with open(qsub_animate_exe_sh, "a") as f:

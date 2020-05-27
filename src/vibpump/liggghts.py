@@ -72,6 +72,8 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
 
       qsub_sim_sh = job_dir + "/qsub_sim.sh"
       hostfile = job_dir + "/hostfile"
+      qsub_out = job_dir + "/stdout.liggghts"
+      qsub_err = job_dir + "/stderr.liggghts"
       vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
 
       with open(qsub_sim_exe_sh, "a") as f:
@@ -86,8 +88,8 @@ def setup_simulation(ini_list: List[str], is_cluster: bool = False):
         f.write("#!/bin/bash\n\n")
         f.write("#$ -cwd\n")
         f.write("#$ -N {0}\n".format(job))
-        f.write("#$ -o stdout.liggghts\n")
-        f.write("#$ -e stderr.liggghts\n")
+        f.write("#$ -o {0}\n".format(qsub_out))
+        f.write("#$ -e {0}\n".format(qsub_err))
         f.write("#$ -M Masato.Adachi@dlr.de\n")
         f.write("#$ -m es\n\n")
 
@@ -325,7 +327,8 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
       write_animate_py(job_dir)
       animate_py = animate_dir + "/animate.py"
       animate_sh = animate_dir + "/animate.sh"
-      log = animate_dir + "/log.animate"
+      qsub_out = job_dir + "/stdout.liggghts"
+      qsub_err = job_dir + "/stderr.liggghts"
 
       with open(animate_exe_sh, "a") as f:
         f.write("cd {0}\n".format(animate_dir))
@@ -338,12 +341,7 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
             np, animate_py, log
           )
         )
-        f.write(
-          "ffmpeg -f image2 -y -framerate {0} -i {1}/p_.%04d.png -c:v libx264 -vf fps={0} -pix_fmt yuv420p {1}/{2}.mp4 2>&1 | tee -a {3}\n".format(
-            fps_ffmpeg, animate_dir, job, log
-          )
-        )
-        f.write("if [ -d {0} ]; then\nrm {0}/p_.*.png\nfi\n\n".format(animate_dir))
+        # f.write("if [ -d {0} ]; then\nrm {0}/p_.*.png\nfi\n\n".format(animate_dir))
 
       if not is_cluster:
         continue
@@ -361,7 +359,8 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
         f.write("#!/bin/bash\n\n")
         f.write("#$ -cwd\n")
         f.write("#$ -N {0}\n".format(job))
-        f.write("#$ -eo {0}\n".format(log))
+        f.write("#$ -o {0}\n".format(qsub_out))
+        f.write("#$ -e {0}\n".format(qsub_err))
         f.write("#$ -M Masato.Adachi@dlr.de\n")
         f.write("#$ -m ae\n\n")
 

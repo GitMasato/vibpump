@@ -327,8 +327,7 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
       write_animate_py(job_dir)
       animate_py = animate_dir + "/animate.py"
       animate_sh = animate_dir + "/animate.sh"
-      qsub_out = job_dir + "/stdout.liggghts"
-      qsub_err = job_dir + "/stderr.liggghts"
+      log = animate_dir + "/log.animate"
 
       with open(animate_exe_sh, "a") as f:
         f.write("cd {0}\n".format(animate_dir))
@@ -349,6 +348,8 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
       qsub_animate_sh = animate_dir + "/qsub_animate.sh"
       pvbatch = str(pathlib.Path.home().resolve()) + "/build/paraview/bin/pvbatch"
       pvbatch_lib = str(pathlib.Path.home().resolve()) + "/build/paraview/lib"
+      qsub_out = job_dir + "/stdout.liggghts"
+      qsub_err = job_dir + "/stderr.liggghts"
       ffmpeg = "/usr/bin/ffmpeg"
 
       with open(qsub_animate_exe_sh, "a") as f:

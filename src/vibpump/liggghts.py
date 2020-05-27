@@ -350,7 +350,6 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
       pvbatch_lib = str(pathlib.Path.home().resolve()) + "/build/paraview/lib"
       qsub_out = job_dir + "/stdout.liggghts"
       qsub_err = job_dir + "/stderr.liggghts"
-      ffmpeg = "/usr/bin/ffmpeg"
 
       with open(qsub_animate_exe_sh, "a") as f:
         f.write("cd {0}\n".format(animate_dir))
@@ -374,16 +373,11 @@ def animate(ini_list: List[str], is_cluster: bool = False, fps: Optional[int] = 
         f.write(" --mca orte_base_help_aggregate 0")
         f.write(" --mca btl_openib_warn_default_gid_prefix 0")
         f.write(
-          ' bash -c "ulimit -s 10240 && {0} --use-offscreen-rendering {1}\n\n'.format(
+          ' bash -c "ulimit -s 10240 && {0} --use-offscreen-rendering {1}"\n\n'.format(
             pvbatch, animate_py
           )
         )
-        f.write(
-          "{0} -framerate {1} -i {2}/p_.%04d.png -vcodec libx264 -pix_fmt yuv420p -y {2}/{3}.mp4\n".format(
-            ffmpeg, fps_ffmpeg, animate_dir, job
-          )
-        )
-        f.write("if [ -d {0} ]; then\nrm {0}/p_.*.png\nfi\n\n".format(animate_dir))
+        # f.write("if [ -d {0} ]; then\nrm {0}/p_.*.png\nfi\n\n".format(animate_dir))
 
     subprocess.run(["bash", qsub_animate_exe_sh if is_cluster else animate_exe_sh])
 

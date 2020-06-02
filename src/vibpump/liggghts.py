@@ -230,67 +230,8 @@ def setup(
     qsub_exe_all_sh = jobs_dir + "/qsub_exe_all.sh"
     exe_all_sh = jobs_dir + "/exe_all.sh"
 
-    home = str(pathlib.Path.home().resolve())
-    vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
-    lmp = home + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
-    stdout = jobs_dir + "/stdout_exe"
-    stderr = jobs_dir + "/stderr_exe"
-    open(stdout, "w").close()
-    open(stderr, "w").close()
-
-    if is_cluster:
-      with open(qsub_exe_all_sh, "w") as f:
-        f.write("#!/bin/bash\n\n")
-        f.write("#$ -cwd\n")
-        f.write("#$ -N {0}\n".format(ini))
-        f.write("#$ -t 1-{0}\n".format(str(len(jobs))))
-        f.write("#$ -o {0}\n".format(stdout))
-        f.write("#$ -e {0}\n".format(stderr))
-        f.write("#$ -M Masato.Adachi@dlr.de\n")
-        f.write("#$ -m es\n\n")
-
-        f.write("NP_LIST=( ")
-        for np in parallels:
-          f.write("{0} ".format(str(np)))
-        f.write(")\n\n")
-
-        f.write("DIR_LIST=( ")
-        for idx, job in enumerate(jobs):
-          job_dir = str(pathlib.Path(jobs_dir + "/" + job))
-          f.write('"{0}" '.format(job_dir))
-        f.write(")\n\n")
-
-        f.write("HOST_LIST=( ")
-        for idx, job in enumerate(jobs):
-          job_dir = str(pathlib.Path(jobs_dir + "/" + job))
-          hostfile = job_dir + "/hostfile"
-          f.write('"{0}" '.format(hostfile))
-        f.write(")\n\n")
-
-        f.write("INI_LIST=( ")
-        for idx, job in enumerate(jobs):
-          job_dir = str(pathlib.Path(jobs_dir + "/" + job))
-          ini_script = job_dir + "/ini.script"
-          f.write('"{0}" '.format(ini_script))
-        f.write(")\n\n")
-
-        f.write("NP=NP_LIST[$SGE_TASK_ID]\n")
-        f.write("DIR=DIR_LIST[$SGE_TASK_ID]\n")
-        f.write("HOST=HOST_LIST[$SGE_TASK_ID]\n")
-        f.write("INI=INI_LIST[$SGE_TASK_ID]\n\n")
-
-        f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
-        f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
-        f.write(" -np $NP")
-        f.write(" --hostfile $HOST")
-        f.write(" --mca opal_event_include poll")
-        f.write(" --mca orte_base_help_aggregate 0")
-        f.write(" --mca btl_openib_warn_default_gid_prefix 0")
-        f.write(' bash -c "ulimit -s 10240 && cd $DIR && ')
-        f.write('{0} < $INI"\n\n'.format(lmp))
-
-    # with open(qsub_exe_all_sh if is_cluster else exe_all_sh, "w") as f:
-    #   f.write("#!/bin/bash\n\n")
+    with open(qsub_exe_all_sh if is_cluster else exe_all_sh, "w") as f:
+      f.write("#!/bin/bash\n\n")
 
     for idx, job in enumerate(jobs):
 
@@ -312,30 +253,34 @@ def setup(
 
         qsub_exe_sh = job_dir + "/qsub_exe.sh"
         hostfile = job_dir + "/hostfile"
-
+        vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
         stdout = job_dir + "/stdout_exe"
         stderr = job_dir + "/stderr_exe"
         open(stdout, "w").close()
         open(stdout, "w").close()
 
-        # with open(qsub_exe_sh, "w") as f:
-        #   f.write("#!/bin/bash\n\n")
-        #   f.write("#$ -cwd\n")
-        #   f.write("#$ -N {0}\n".format(job))
-        #   f.write("#$ -o {0}\n".format(stdout))
-        #   f.write("#$ -e {0}\n".format(stderr))
-        #   f.write("#$ -M Masato.Adachi@dlr.de\n")
-        #   f.write("#$ -m es\n\n")
-        #   f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
-        #   f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
-        #   f.write(" -np {0}".format(str(np)))
-        #   f.write(" --hostfile {0}".format(hostfile))
-        #   f.write(" --mca opal_event_include poll")
-        #   f.write(" --mca orte_base_help_aggregate 0")
-        #   f.write(" --mca btl_openib_warn_default_gid_prefix 0")
-        #   f.write(' bash -c "ulimit -s 10240 && {0} < {1}"\n\n'.format(lmp, ini_script))
-        #   if is_animated:
-        #     add_animate_process(job_dir, np, f, is_cluster)
+        with open(qsub_exe_all_sh, "a") as f:
+          f.write("cd {0}\n".format(job_dir))
+          f.write("qsub {0}\n\n".format(qsub_exe_sh))
+
+        with open(qsub_exe_sh, "w") as f:
+          f.write("#!/bin/bash\n\n")
+          f.write("#$ -cwd\n")
+          f.write("#$ -N {0}\n".format(job))
+          f.write("#$ -o {0}\n".format(stdout))
+          f.write("#$ -e {0}\n".format(stderr))
+          f.write("#$ -M Masato.Adachi@dlr.de\n")
+          f.write("#$ -m es\n\n")
+          f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
+          f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
+          f.write(" -np {0}".format(str(np)))
+          f.write(" --hostfile {0}".format(hostfile))
+          f.write(" --mca opal_event_include poll")
+          f.write(" --mca orte_base_help_aggregate 0")
+          f.write(" --mca btl_openib_warn_default_gid_prefix 0")
+          f.write(' bash -c "ulimit -s 10240 && {0} < {1}"\n\n'.format(lmp, ini_script))
+          if is_animated:
+            add_animate_process(job_dir, np, f, is_cluster)
 
         with open(hostfile, "w") as f:
           for host in clusters[idx].split("+"):

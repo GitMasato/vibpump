@@ -185,21 +185,30 @@ def check_cluster_parameters(
   return True
 
 
-def execute_sh(script: str) -> bool:
+def execute_sh(script: str, is_cluster: bool = False) -> bool:
   """execute script
 
   Args:
       script (str): script file
+      is_cluster (bool, optional): [description]. Defaults to False.
 
   Returns:
       bool: if script is executed (true:executed)
   """
-  if pathlib.Path(script).is_file():
-    subprocess.run(["bash", script])
-    return True
+  if is_cluster:
+    if pathlib.Path(script).is_file():
+      subprocess.run(["qsub", script])
+      return True
+    else:
+      print("'{0}' does not exists!".format(script))
+      return False
   else:
-    print("'{0}' does not exists!".format(script))
-    return False
+    if pathlib.Path(script).is_file():
+      subprocess.run(["bash", script])
+      return True
+    else:
+      print("'{0}' does not exists!".format(script))
+      return False
 
 
 def setup(
@@ -310,7 +319,7 @@ def setup(
             add_animate_process(job_dir, np, f, is_cluster)
 
     if is_executed:
-      execute_sh(qsub_exe_all_sh) if is_cluster else execute_sh(exe_all_sh)
+      execute_sh(qsub_exe_all_sh, True) if is_cluster else execute_sh(exe_all_sh, False)
 
 
 # def setup(

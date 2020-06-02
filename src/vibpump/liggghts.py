@@ -274,15 +274,20 @@ def setup(
           f.write('"{0}" '.format(ini_script))
         f.write(")\n\n")
 
+        f.write("NP=NP_LIST[$SGE_TASK_ID]\n")
+        f.write("DIR=DIR_LIST[$SGE_TASK_ID]\n")
+        f.write("HOST=HOST_LIST[$SGE_TASK_ID]\n")
+        f.write("INI=INI_LIST[$SGE_TASK_ID]\n")
+
         f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
         f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
-        f.write(" -np NP_LIST[$SGE_TASK_ID]")
-        f.write(" --hostfile HOST_LIST[$SGE_TASK_ID]")
+        f.write(" -np $NP")
+        f.write(" --hostfile $HOST")
         f.write(" --mca opal_event_include poll")
         f.write(" --mca orte_base_help_aggregate 0")
         f.write(" --mca btl_openib_warn_default_gid_prefix 0")
-        f.write(' bash -c "ulimit -s 10240 && cd DIR_LIST[$SGE_TASK_ID] && ')
-        f.write('{0} < INI_LIST[$SGE_TASK_ID]"\n\n'.format(lmp))
+        f.write(' bash -c "ulimit -s 10240 && cd $DIR && ')
+        f.write('{0} < $INI"\n\n'.format(lmp))
 
     # with open(qsub_exe_all_sh if is_cluster else exe_all_sh, "w") as f:
     #   f.write("#!/bin/bash\n\n")

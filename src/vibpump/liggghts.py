@@ -251,7 +251,7 @@ def setup(
 
         f.write("NP_LIST=( ")
         for np in parallels:
-          f.write('"{0}" '.format(str(np)))
+          f.write("{0} ".format(str(np)))
         f.write(")\n\n")
 
         f.write("DIR_LIST=( ")

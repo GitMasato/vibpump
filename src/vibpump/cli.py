@@ -86,12 +86,12 @@ def call_liggghts(args: argparse.Namespace, parser: argparse.ArgumentParser):
     sys.exit(parser.parse_args(["liggghts", "--help"]))
 
 
-def call_liggghts_pre(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts preprocess command is given
+def call_liggghts_setup(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts setup command is given
   """
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "preprocess", "--help"]))
+    sys.exit(parser.parse_args(["liggghts", "setup", "--help"]))
 
   ini_list: List[str] = []
   if args.ini:
@@ -102,19 +102,34 @@ def call_liggghts_pre(args: argparse.Namespace, parser: argparse.ArgumentParser)
   if not ini_list:
     sys.exit("no .ini file exists!")
 
-  liggghts.setup_simulation(ini_list, args.cluster)
-
-  if args.execute:
-    liggghts.execute_simulation(ini_list, args.cluster)
-    liggghts.animate(ini_list, args.cluster)
+  liggghts.setup(ini_list, args.cluster, args.animate, args.execute)
 
 
-def call_liggghts_post(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts postprocess command is given
+def call_liggghts_execute(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts execute command is given
   """
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "postprocess", "--help"]))
+    sys.exit(parser.parse_args(["liggghts", "execute", "--help"]))
+
+  ini_list: List[str] = []
+  if args.ini:
+    for ini in args.ini:
+      if ".ini" in ini:
+        ini_list.append(ini)
+
+  if not ini_list:
+    sys.exit("no .ini file exists!")
+
+  liggghts.execute(ini_list, args.cluster)
+
+
+def call_liggghts_process(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts process command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "process", "--help"]))
 
   ini_list: List[str] = []
   if args.ini:
@@ -220,78 +235,105 @@ def cli_execution():
   subparsers_liggghts = parser_liggghts.add_subparsers()
 
   # parser for liggghts setup function
-  subparser_pre = subparsers_liggghts.add_parser(
-    "pre",
+  subparser_setup = subparsers_liggghts.add_parser(
+    "setup",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="command for preprocess of simulation",
-    description="command 'liggghts pre': preprocess of simulation\n\n"
+    help="command for setup of simulation",
+    description="command 'liggghts setup': to generate files for simulation\n\n"
     + "basic required arguments is ini file (**.ini. '--ini').\n\n"
-    + "(see sub-option 'vibpump liggghts pre -h')\n",
+    + "(see sub-option 'vibpump liggghts setup -h')\n",
   )
-  subparser_pre.add_argument(
+  subparser_setup.add_argument(
     "--ini",
     nargs="*",
     type=str,
     metavar="path",
     help="path to ini file (**.ini)" + "\n ",
   )
-  subparser_pre.add_argument(
+  subparser_setup.add_argument(
     "--cluster",
     action="store_true",
     help="to generate files for running on cluster" + "\n ",
   )
-  subparser_pre.add_argument(
+  subparser_setup.add_argument(
+    "--animate",
+    action="store_true",
+    help="flag to create movie file from simulation results" + "\n ",
+  )
+  subparser_setup.add_argument(
     "--execute",
     action="store_true",
     help="to start simulations using generated files" + "\n ",
   )
-  subparser_pre.set_defaults(call=call_liggghts_pre)
+  subparser_setup.set_defaults(call=call_liggghts_setup)
 
-  # parser for liggghts analyze function
-  subparser_post = subparsers_liggghts.add_parser(
-    "post",
+  # parser for liggghts execute function
+  subparser_execute = subparsers_liggghts.add_parser(
+    "execute",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="command for postprocess of simulation",
-    description="command 'liggghts post': postprocess of simulation\n\n"
-    + "basic required arguments is ini file (**.ini. '--ini').\n\n"
-    + "(see sub-option 'vibpump liggghts post -h')\n",
+    help="command for executing simulation",
+    description="command 'liggghts execute': to execute simulation\n\n"
+    + "required argument is ini file (**.ini. '--ini').\n\n"
+    + "(see sub-option 'vibpump liggghts execute -h')\n",
   )
-  subparser_post.add_argument(
+  subparser_execute.add_argument(
     "--ini",
     nargs="*",
     type=str,
     metavar="path",
     help="path to ini file (**.ini)" + "\n ",
   )
-  subparser_post.add_argument(
+  subparser_execute.add_argument(
     "--cluster",
     action="store_true",
-    help="to generate files for running on cluster" + "\n ",
+    help="flag to execute simulation on cluster" + "\n ",
   )
-  subparser_post.add_argument(
+  subparser_execute.set_defaults(call=call_liggghts_execute)
+
+  # parser for liggghts process function
+  subparser_process = subparsers_liggghts.add_parser(
+    "process",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="command for post-process of simulation",
+    description="command 'liggghts process': post-process of simulation\n\n"
+    + "basic required arguments is ini file (**.ini. '--ini').\n\n"
+    + "(see sub-option 'vibpump liggghts process -h')\n",
+  )
+  subparser_process.add_argument(
+    "--ini",
+    nargs="*",
+    type=str,
+    metavar="path",
+    help="path to ini file (**.ini)" + "\n ",
+  )
+  subparser_process.add_argument(
+    "--cluster",
+    action="store_true",
+    help="flag to generate post-process files for running on cluster" + "\n ",
+  )
+  subparser_process.add_argument(
     "--animate",
     action="store_true",
-    help="to create movie file from simulation results" + "\n ",
+    help="to create movie from simulation results" + "\n ",
   )
-
-  subparser_post.add_argument(
+  subparser_process.add_argument(
     "--fps",
     type=int,
     metavar="fps",
     default=None,
     help="fps when to create movie file from simulation results" + "\n ",
   )
-  subparser_post.add_argument(
+  subparser_process.add_argument(
     "--measureHeight",
     action="store_true",
     help="to measure climbing height from simulation results" + "\n ",
   )
-  subparser_post.add_argument(
+  subparser_process.add_argument(
     "--graphHeight",
     action="store_true",
     help="to graph climbing height results" + "\n ",
   )
-  subparser_post.set_defaults(call=call_liggghts_post)
+  subparser_process.set_defaults(call=call_liggghts_process)
 
   if len(sys.argv) <= 1:
     sys.exit(parser.format_help())

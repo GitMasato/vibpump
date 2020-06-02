@@ -260,12 +260,14 @@ def setup(
           f.write("{0} ".format(str(np)))
         f.write(")\n")
         f.write("NP=${NP_LIST[$SGE_TASK_ID]}\n\n")
+        f.write("echo ${NP}\n\n")
 
         f.write("DIR_LIST=( ")
         for job in jobs:
           f.write('"{0}" '.format(str(pathlib.Path(jobs_dir + "/" + job))))
         f.write(")\n")
         f.write("DIR=${DIR_LIST[$SGE_TASK_ID]}\n\n")
+        f.write("echo ${DIR}\n\n")
 
         f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
         f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))

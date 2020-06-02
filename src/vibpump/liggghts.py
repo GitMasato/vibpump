@@ -246,13 +246,13 @@ def setup(
         f.write("#$ -M Masato.Adachi@dlr.de\n")
         f.write("#$ -m es\n\n")
 
-        f.write("NP_LIST=(0 ")
+        f.write("NP_LIST=( ")
         for np in parallels:
           f.write("{0} ".format(str(np)))
         f.write(")\n")
         f.write("NP=${NP_LIST[$SGE_TASK_ID]}\n\n")
 
-        f.write('DIR_LIST=("--" ')
+        f.write("DIR_LIST=( ")
         for job in jobs:
           f.write('"{0}" '.format(str(pathlib.Path(jobs_dir + "/" + job))))
         f.write(")\n")

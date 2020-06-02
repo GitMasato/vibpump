@@ -277,7 +277,7 @@ def setup(
         f.write("NP=NP_LIST[$SGE_TASK_ID]\n")
         f.write("DIR=DIR_LIST[$SGE_TASK_ID]\n")
         f.write("HOST=HOST_LIST[$SGE_TASK_ID]\n")
-        f.write("INI=INI_LIST[$SGE_TASK_ID]\n")
+        f.write("INI=INI_LIST[$SGE_TASK_ID]\n\n")
 
         f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
         f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))

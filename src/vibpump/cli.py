@@ -124,6 +124,25 @@ def call_liggghts_execute(args: argparse.Namespace, parser: argparse.ArgumentPar
   liggghts.execute(ini_list, args.cluster)
 
 
+def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts log command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "log", "--help"]))
+
+  ini_list: List[str] = []
+  if args.ini:
+    for ini in args.ini:
+      if ".ini" in ini:
+        ini_list.append(ini)
+
+  if not ini_list:
+    sys.exit("no .ini file exists!")
+
+  liggghts.display_log(ini_list, args.head, args.process, args.line)
+
+
 def call_liggghts_process(args: argparse.Namespace, parser: argparse.ArgumentParser):
   """call function when liggghts process command is given
   """
@@ -140,8 +159,8 @@ def call_liggghts_process(args: argparse.Namespace, parser: argparse.ArgumentPar
   if not ini_list:
     sys.exit("no .ini file exists!")
 
-  if args.animate:
-    liggghts.animate(ini_list, args.cluster, args.fps)
+  # if args.animate:
+  #   liggghts.animate(ini_list, args.cluster, args.fps)
 
   if args.measureHeight:
     liggghts.measure_height(ini_list, args.cluster)
@@ -290,6 +309,38 @@ def cli_execution():
   )
   subparser_execute.set_defaults(call=call_liggghts_execute)
 
+  # parser for liggghts log function
+  subparser_log = subparsers_liggghts.add_parser(
+    "log",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="command for showing simulation (or post-process) log",
+    description="command 'liggghts log': to show log\n\n"
+    + "required argument is ini file (**.ini. '--ini').\n"
+    + "default: to show 15 lines of tail part of simulation log file.\n\n"
+    + "(see sub-option 'vibpump liggghts log -h')\n",
+  )
+  subparser_log.add_argument(
+    "--ini",
+    nargs="*",
+    type=str,
+    metavar="path",
+    help="path to ini file (**.ini)" + "\n ",
+  )
+  subparser_log.add_argument(
+    "--head", action="store_true", help="flag to show head part of log file" + "\n ",
+  )
+  subparser_log.add_argument(
+    "--process", action="store_true", help="flag to show post-process log file" + "\n ",
+  )
+  subparser_log.add_argument(
+    "--line",
+    type=int,
+    metavar="line",
+    default=None,
+    help="how many lines of log file to be shown (default: 15)" + "\n ",
+  )
+  subparser_log.set_defaults(call=call_liggghts_log)
+
   # parser for liggghts process function
   subparser_process = subparsers_liggghts.add_parser(
     "process",
@@ -320,7 +371,6 @@ def cli_execution():
     "--fps",
     type=int,
     metavar="fps",
-    default=None,
     help="fps when to create movie file from simulation results" + "\n ",
   )
   subparser_process.add_argument(

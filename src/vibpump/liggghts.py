@@ -190,10 +190,10 @@ def execute_sh(script: str, is_cluster: bool = False) -> bool:
 
   Args:
       script (str): script file
-      is_cluster (bool, optional): [description]. Defaults to False.
+      is_cluster (bool, optional): flag if it will run on cluster (true: yes). Defaults to False.
 
   Returns:
-      bool: if script is executed (true:executed)
+      bool: if script is executed (true: executed)
   """
   if is_cluster:
     if pathlib.Path(script).is_file():
@@ -236,73 +236,48 @@ def setup(
 
     jobs_dir = str(pathlib.Path(pathlib.Path.cwd() / pathlib.Path(ini).stem))
     pathlib.Path(jobs_dir).mkdir(parents=True, exist_ok=True)
-    qsub_exe_all_sh = jobs_dir + "/qsub_exe_all.sh"
-    exe_all_sh = jobs_dir + "/exe_all.sh"
-
-    home = str(pathlib.Path.home().resolve())
-    lmp = home + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
-    vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
+    list_str = "NP_LIST=( " + " ".join([str(l) for l in parallels]) + " )\nDIR_LIST=( "
+    list_str += " ".join(['"{0}"'.format(jobs_dir + "/" + j) for j in jobs]) + " )\n\n"
 
     if is_cluster:
-
-      with open(qsub_exe_all_sh, "w") as f:
+      with open(jobs_dir + "/qsub_exe_all.sh", "w") as f:
         f.write("#!/bin/bash\n\n")
         f.write("#$ -cwd\n")
-        f.write("#$ -t 1-{0}:1\n".format(str(len(parallels))))
-        f.write("#$ -N {0}\n".format(ini))
+        f.write("#$ -t 1-{0}:1\n".format(str(len(jobs))))
         f.write("#$ -o {0}\n".format(jobs_dir + "/stdout_exe"))
         f.write("#$ -e {0}\n".format(jobs_dir + "/stderr_exe"))
-        f.write("#$ -M Masato.Adachi@dlr.de\n")
-        f.write("#$ -m es\n\n")
-
-        f.write("NP_LIST=( ")
-        for np in parallels:
-          f.write("{0} ".format(str(np)))
-        f.write(")\n")
-        f.write("NP=${NP_LIST[$SGE_TASK_ID-1]}\n\n")
-        f.write("echo ${NP}\n\n")
-
-        f.write("DIR_LIST=( ")
-        for job in jobs:
-          f.write('"{0}" '.format(str(pathlib.Path(jobs_dir + "/" + job))))
-        f.write(")\n")
+        f.write("#$ -N {0}\n\n".format(ini))
+        f.write(list_str)
+        f.write("NP=${NP_LIST[$SGE_TASK_ID-1]}\n")
         f.write("DIR=${DIR_LIST[$SGE_TASK_ID-1]}\n\n")
-        f.write("echo ${DIR}\n\n")
-
-        f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
-        f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
-        f.write(" -np ${NP}")
-        f.write(" --hostfile ${DIR}/hostfile")
-        f.write(" --mca opal_event_include poll")
-        f.write(" --mca orte_base_help_aggregate 0")
-        f.write(" --mca btl_openib_warn_default_gid_prefix 0")
-        f.write(' bash -c "ulimit -s 10240 && cd ${DIR} &&')
-        f.write(" {0} < ".format(lmp))
-        f.write(' ${DIR}/ini.script >> ${DIR}/log.liggghts 2>&1"\n\n')
-
+        write_sim_process_all(is_cluster, f)
+        if is_animated:
+          write_animate_process_all(is_cluster, f)
     else:
-      with open(exe_all_sh, "w") as f:
+      with open(jobs_dir + "/exe_all.sh", "w") as f:
         f.write("#!/bin/bash\n\n")
-        f.write("DIR_LIST=( ")
-        for job in jobs:
-          f.write('"{0}" '.format(str(pathlib.Path(jobs_dir + "/" + job))))
-        f.write(")\n\n")
-        f.write("echo ${DIR_LIST} | xargs -I {} " + "-P {0} ".format(str(len(jobs))))
-        f.write("bash -c 'cd {} && ")
-        f.write("mpirun -np {0} {1} < ".format(np, lmp))
-        f.write("{}/ini.script >> ${}/log.liggghts 2>&1'\n\n")
+        f.write(list_str)
+        f.write("exe () {\n\n")
+        f.write("  cd ${1}\n\n")
+        write_sim_process_all(is_cluster, f)
+        if is_animated:
+          write_animate_process_all(is_cluster, f)
+        f.write("}\n\n")
+        f.write("for D in $(seq {0}); do\n".format(len(jobs)))
+        f.write("  exe ${DIR_LIST[${D}-1]} ${NP_LIST[${D}-1]} &\n")
+        f.write("done\n\n")
 
     for idx, job in enumerate(jobs):
 
       job_dir = str(pathlib.Path(jobs_dir + "/" + job))
       if pathlib.Path(job_dir).is_dir():
         shutil.rmtree(job_dir)
-
       pathlib.Path(job_dir).mkdir(parents=True)
-      np = parallels[idx]
-      ini_script = job_dir + "/ini.script"
 
-      with open(ini_script, "w") as f:
+      if is_animated:
+        create_animate_dir(job_dir)
+
+      with open(job_dir + "/ini.script", "w") as f:
         for parameter in parameters:
           f.write(parameter[0] + "\n" if len(parameter) == 1 else parameter[idx] + "\n")
 
@@ -312,118 +287,28 @@ def setup(
           for host in clusters[idx].split("+"):
             f.write(host.strip() + "\n")
 
-      else:
+        with open(job_dir + "/qsub_exe.sh", "w") as f:
+          f.write("#!/bin/bash\n\n")
+          f.write("#$ -cwd\n")
+          f.write("#$ -o {0}\n".format(job_dir + "/stdout_exe"))
+          f.write("#$ -e {0}\n".format(job_dir + "/stderr_exe"))
+          f.write("#$ -N {0}\n\n".format(job))
+          write_sim_process(job_dir, parallels[idx], is_cluster, f)
+          if is_animated:
+            write_animate_process(job_dir, parallels[idx], is_cluster, f)
 
+      else:
         with open(job_dir + "/exe.sh", "w") as f:
           f.write("#!/bin/bash\n\n")
-          f.write("mpirun -np {0} {1} < {2}\n\n".format(np, lmp, ini_script))
+          write_sim_process(job_dir, parallels[idx], is_cluster, f)
           if is_animated:
-            add_animate_process(job_dir, np, f, is_cluster)
+            write_animate_process(job_dir, parallels[idx], is_cluster, f)
 
     if is_executed:
-      execute_sh(qsub_exe_all_sh, True) if is_cluster else execute_sh(exe_all_sh, False)
-
-
-# def setup(
-#   ini_list: List[str],
-#   is_cluster: bool = False,
-#   is_animated: bool = False,
-#   is_executed: bool = False,
-# ):
-#   """create liggghts simulation scripts
-
-#   Args:
-#       ini_list (List[str]): list of ini files
-#       is_cluster (bool): flag to apply for cluster job
-#       is_animated (bool): flag to apply animate process
-#       is_executed (bool): flag to execute simulation
-#   """
-#   for ini in ini_list:
-
-#     jobs, parameters, clusters, parallels = read_ini_file(ini)
-
-#     if not check_parameters(ini, jobs, parameters):
-#       continue
-#     if is_cluster and (not check_cluster_parameters(ini, jobs, clusters, parallels)):
-#       continue
-
-#     jobs_dir = str(pathlib.Path(pathlib.Path.cwd() / pathlib.Path(ini).stem))
-#     pathlib.Path(jobs_dir).mkdir(parents=True, exist_ok=True)
-#     qsub_exe_all_sh = jobs_dir + "/qsub_exe_all.sh"
-#     exe_all_sh = jobs_dir + "/exe_all.sh"
-
-#     with open(qsub_exe_all_sh if is_cluster else exe_all_sh, "w") as f:
-#       f.write("#!/bin/bash\n\n")
-
-#     for idx, job in enumerate(jobs):
-
-#       job_dir = str(pathlib.Path(jobs_dir + "/" + job))
-#       if pathlib.Path(job_dir).is_dir():
-#         shutil.rmtree(job_dir)
-
-#       pathlib.Path(job_dir).mkdir(parents=True)
-#       np = parallels[idx]
-#       home = str(pathlib.Path.home().resolve())
-#       lmp = home + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
-#       ini_script = job_dir + "/ini.script"
-
-#       with open(ini_script, "w") as f:
-#         for parameter in parameters:
-#           f.write(parameter[0] + "\n" if len(parameter) == 1 else parameter[idx] + "\n")
-
-#       if is_cluster:
-
-#         qsub_exe_sh = job_dir + "/qsub_exe.sh"
-#         hostfile = job_dir + "/hostfile"
-#         vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
-#         stdout = job_dir + "/stdout_exe"
-#         stderr = job_dir + "/stderr_exe"
-#         open(stdout, "w").close()
-#         open(stdout, "w").close()
-
-#         with open(qsub_exe_all_sh, "a") as f:
-#           f.write("cd {0}\n".format(job_dir))
-#           f.write("qsub {0}\n\n".format(qsub_exe_sh))
-
-#         with open(qsub_exe_sh, "w") as f:
-#           f.write("#!/bin/bash\n\n")
-#           f.write("#$ -cwd\n")
-#           f.write("#$ -N {0}\n".format(job))
-#           f.write("#$ -o {0}\n".format(stdout))
-#           f.write("#$ -e {0}\n".format(stderr))
-#           f.write("#$ -M Masato.Adachi@dlr.de\n")
-#           f.write("#$ -m es\n\n")
-#           f.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
-#           f.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
-#           f.write(" -np {0}".format(str(np)))
-#           f.write(" --hostfile {0}".format(hostfile))
-#           f.write(" --mca opal_event_include poll")
-#           f.write(" --mca orte_base_help_aggregate 0")
-#           f.write(" --mca btl_openib_warn_default_gid_prefix 0")
-#           f.write(' bash -c "ulimit -s 10240 && {0} < {1}"\n\n'.format(lmp, ini_script))
-#           if is_animated:
-#             add_animate_process(job_dir, np, f, is_cluster)
-
-#         with open(hostfile, "w") as f:
-#           for host in clusters[idx].split("+"):
-#             f.write(host.strip() + "\n")
-
-#       else:
-
-#         exe_sh = job_dir + "/exe.sh"
-
-#         with open(exe_all_sh, "a") as f:
-#           f.write("cd {0}\n".format(job_dir))
-#           f.write("bash {0}\n\n".format(exe_sh))
-
-#         with open(exe_sh, "w") as f:
-#           f.write("#!/bin/bash\n\n")
-#           f.write("mpirun -np {0} {1} < {2}\n\n".format(np, lmp, ini_script))
-#           if is_animated:
-#             add_animate_process(job_dir, np, f, is_cluster)
-
-#     if is_executed:
-#       execute_sh(qsub_exe_all_sh) if is_cluster else execute_sh(exe_all_sh)
+      if is_cluster:
+        execute_sh(jobs_dir + "/qsub_exe_all.sh", True)
+      else:
+        execute_sh(jobs_dir + "/exe_all.sh", False)
 
 
 def execute(ini_list: List[str], is_cluster: bool = False):
@@ -438,7 +323,43 @@ def execute(ini_list: List[str], is_cluster: bool = False):
     jobs_dir = str(pathlib.Path(pathlib.Path.cwd() / pathlib.Path(ini).stem))
     qsub_exe_all_sh = jobs_dir + "/qsub_exe_all.sh"
     exe_all_sh = jobs_dir + "/exe_all.sh"
-    execute_sh(qsub_exe_all_sh) if is_cluster else execute_sh(exe_all_sh)
+    execute_sh(qsub_exe_all_sh, True) if is_cluster else execute_sh(exe_all_sh, False)
+
+
+def display_log(
+  ini_list: List[str], is_head: bool = False, is_process: bool = False, lines: int = 15
+):
+  """display log file
+
+  Args:
+      ini_list (List[str]): list of ini files
+      is_head (bool, optional): flag to show head part of log file. Defaults to False.
+      is_process (bool, optional): flag to show post-process log. Defaults to False.
+      lines (int, optional): how many lines will be shown. Defaults to 15.
+  """
+  for ini in ini_list:
+
+    jobs, parameters, clusters, parallels = read_ini_file(ini)
+    jobs_dir = str(pathlib.Path(pathlib.Path.cwd() / pathlib.Path(ini).stem))
+    str_lines = str(lines) if lines else "15"
+
+    for job in jobs:
+
+      log_sim = str(pathlib.Path(jobs_dir + "/" + job + "/log.liggghts"))
+      log_post = str(pathlib.Path(jobs_dir + "/" + job + "/log.post"))
+
+      if is_process:
+        if pathlib.Path(log_post).is_file():
+          print("\n///// {0} /////\n".format(log_post))
+          subprocess.run(["head" if is_head else "tail", log_post, "-n", str_lines])
+        else:
+          print("'{0}' does not exists!".format(log_post))
+      else:
+        if pathlib.Path(log_sim).is_file():
+          print("\n///// {0} /////\n".format(log_sim))
+          subprocess.run(["head" if is_head else "tail", log_sim, "-n", str_lines])
+        else:
+          print("'{0}' does not exists!".format(log_sim))
 
 
 def post_process(ini_list: List[str], is_cluster: bool = False):
@@ -515,96 +436,167 @@ def post_process(ini_list: List[str], is_cluster: bool = False):
   #     execute_sh(qsub_exe_all_sh) if is_cluster else execute_sh(exe_all_sh)
 
 
-def add_animate_process(job_dir: str, np: int, IO: TextIO, is_cluster: bool = False):
-  """add animate process description
+def write_sim_process_all(is_cluster: bool, IO: TextIO):
+  """write simulation process description
+
+  Args:
+      is_cluster (bool): flag to apply for cluster job
+      IO (io.TextIO): file object
+  """
+  home = str(pathlib.Path.home().resolve())
+  lmp = home + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
+  vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
+
+  if is_cluster:
+    IO.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
+    IO.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
+    IO.write(" -np ${NP}")
+    IO.write(" --hostfile ${DIR}/hostfile")
+    IO.write(" --mca opal_event_include poll")
+    IO.write(" --mca orte_base_help_aggregate 0")
+    IO.write(" --mca btl_openib_warn_default_gid_prefix 0")
+    IO.write(' bash -c "ulimit -s 10240 && cd ${DIR} &&')
+    IO.write(" {0} < ".format(lmp) + "${DIR}/ini.script")
+    IO.write(' >> ${DIR}/log.liggghts 2>&1"\n\n')
+  else:
+    IO.write("  mpirun -np ${2} " + "{0} < \\\n".format(lmp))
+    IO.write("  ${1}/ini.script >/dev/null 2>&1\n\n")
+
+
+def write_sim_process(job_dir: str, np: int, is_cluster: bool, IO: TextIO):
+  """write simulation process description
 
   Args:
       job_dir (str): job directory name
       np (int): parallel number
-      IO (io.TextIO): file object
       is_cluster (bool): flag to apply for cluster job
+      IO (io.TextIO): file object
   """
-  if not [pathlib.Path(job_dir + "/post").iterdir()]:
-    print("no file exists in '{0}'!".format(job_dir + "/post"))
-    return
-
-  animate_dir = job_dir + "/animate"
-  if pathlib.Path(animate_dir).is_dir():
-    shutil.rmtree(animate_dir)
-
-  pathlib.Path(animate_dir).mkdir(parents=True)
-  pvbatch_py = animate_dir + "/pvbatch.py"
-  animate_py = animate_dir + "/animate.py"
-  write_pvbatch_py(job_dir, pvbatch_py)
-  write_animate_py(job_dir, animate_py)
-
-  pvbatch = str(pathlib.Path.home().resolve()) + "/local/bin/pvbatch"
-  pvbatch_lib = str(pathlib.Path.home().resolve()) + "/local/lib"
-  py38 = str(pathlib.Path.home().resolve()) + "/local/bin/python3.8"
+  home = str(pathlib.Path.home().resolve())
+  lmp = home + "/build/LIGGGHTS-PUBLIC/src/lmp_auto"
+  vtk = home + "/build/LIGGGHTS-PUBLIC/lib/vtk/install/lib"
 
   if is_cluster:
-
     IO.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
-    IO.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(pvbatch_lib))
+    IO.write(" -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}".format(vtk))
     IO.write(" -np {0}".format(np))
     IO.write(" --hostfile {0}".format(job_dir + "/hostfile"))
     IO.write(" --mca opal_event_include poll")
     IO.write(" --mca orte_base_help_aggregate 0")
     IO.write(" --mca btl_openib_warn_default_gid_prefix 0")
-    IO.write(
-      ' bash -c "ulimit -s 10240 && {0} --use-offscreen-rendering {1}"\n\n'.format(
-        pvbatch, pvbatch_py
-      )
-    )
-    IO.write("{0} {1}\n\n".format(py38, animate_py))
+    IO.write(' bash -c "ulimit -s 10240 && cd {0} &&'.format(job_dir))
+    IO.write(" {0} < {1}".format(lmp, job_dir + "/ini.script"))
+    IO.write(' >> {0} 2>&1"\n\n'.format(job_dir + "/log.liggghts"))
+  else:
+    IO.write("cd {0} && mpirun -np {1} ".format(job_dir, np))
+    IO.write("{0} < {1}\n\n".format(lmp, job_dir + "/ini.script"))
+
+
+def write_animate_process_all(is_cluster: bool, IO: TextIO):
+  """write simulation process description
+
+  Args:
+      is_cluster (bool): flag to apply for cluster job
+      IO (io.TextIO): file object
+  """
+  pvbatch = str(pathlib.Path.home().resolve()) + "/local/bin/pvbatch"
+  python38 = str(pathlib.Path.home().resolve()) + "/local/bin/python3.8"
+
+  if is_cluster:
+    IO.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
+    IO.write(" -np ${NP}")
+    IO.write(" --hostfile ${DIR}/hostfile")
+    IO.write(" --mca opal_event_include poll")
+    IO.write(" --mca orte_base_help_aggregate 0")
+    IO.write(" --mca btl_openib_warn_default_gid_prefix 0")
+    IO.write(' bash -c "ulimit -s 10240 && cd ${DIR} ' + "&& {0}".format(pvbatch))
+    IO.write(" --use-offscreen-rendering ${DIR}/animate/pvbatch.py")
+    IO.write(' >> ${DIR}/log.post 2>&1"\n')
+    IO.write(python38 + ' ${DIR}/animate/animate.py >> ${DIR}/log.post 2>&1"\n\n')
+  else:
+    IO.write("  mpirun -np ${2} pvbatch --use-offscreen-rendering \\\n")
+    IO.write("  ${1}/animate/pvbatch.py >> ${1}/log.post 2>&1\n")
+    IO.write("  python3.8 ${1}/animate/animate.py >> ${1}/log.post 2>&1\n\n")
+
+
+def write_animate_process(job_dir: str, np: int, is_cluster: bool, IO: TextIO):
+  """write animate process description
+
+  Args:
+      job_dir (str): job directory name
+      np (int): parallel number
+      is_cluster (bool): flag to apply for cluster job
+      IO (io.TextIO): file object
+  """
+  pvbatch_py = job_dir + "/animate/pvbatch.py"
+  animate_py = job_dir + "/animate/animate.py"
+  pvbatch = str(pathlib.Path.home().resolve()) + "/local/bin/pvbatch"
+  python38 = str(pathlib.Path.home().resolve()) + "/local/bin/python3.8"
+
+  if is_cluster:
+    IO.write("/usr/mpi/gcc/openmpi-1.10.5a1/bin/mpirun")
+    IO.write(" -np {0}".format(np))
+    IO.write(" --hostfile {0}".format(job_dir + "/hostfile"))
+    IO.write(" --mca opal_event_include poll")
+    IO.write(" --mca orte_base_help_aggregate 0")
+    IO.write(" --mca btl_openib_warn_default_gid_prefix 0")
+    IO.write(' bash -c "ulimit -s 10240 && {0}'.format(pvbatch))
+    IO.write(" --use-offscreen-rendering {0}".format(pvbatch_py))
+    IO.write(' >> {0} 2>&1"\n'.format(job_dir + "/log.post"))
+    IO.write("{0} {1}\n\n".format(python38, animate_py))
 
   else:
-
-    IO.write("#!/bin/bash\n\n")
-    IO.write(
-      "mpirun -np {0} pvbatch --use-offscreen-rendering {1}\n\n".format(np, pvbatch_py)
-    )
-    IO.write("{0} {1}\n\n".format(py38, animate_py))
+    IO.write("mpirun -np {0} pvbatch ".format(np))
+    IO.write("--use-offscreen-rendering {0}\n".format(pvbatch_py))
+    IO.write("python3.8 {0}\n\n".format(animate_py))
 
 
-def write_pvbatch_py(job_dir: str, pvbatch_py: str):
+def create_animate_dir(job_dir: str):
+  """create directory and python script for animate process
+
+  Args:
+      job_dir (str): job directory name
+  """
+  animate_dir = job_dir + "/animate"
+
+  if pathlib.Path(animate_dir).is_dir():
+    shutil.rmtree(animate_dir)
+
+  pathlib.Path(animate_dir).mkdir(parents=True)
+  create_pvbatch_py(job_dir, animate_dir + "/pvbatch.py")
+  create_animate_py(job_dir, animate_dir + "/animate.py")
+
+
+def create_pvbatch_py(job_dir: str, pvbatch_py: str):
   """write pvbatch.py file
 
   Args:
       job_dir (str): job directory name
       pvbatch_py (str): pvbatch.py file
   """
-  post_path = pathlib.Path(job_dir + "/post")
-  particles = [
-    str(p) for p in list(post_path.glob("**/p_*.vtk")) if "bounding" not in str(p)
-  ]
-  cads = [str(c) for c in post_path.glob("**/cad_*.vtk")]
-  boxes = [str(b) for b in post_path.glob("**/*bounding*.vtk")]
-
-  match = re.compile(r"\d+")
-  particles.sort(key=lambda s: int(match.findall(s)[-1]))
-  cads.sort(key=lambda s: int(match.findall(s)[-1]))
-  boxes.sort(key=lambda s: int(match.findall(s)[-1]))
-
   with open(pvbatch_py, "w") as f:
 
+    f.write("import glob\n")
+    f.write("import re\n")
     f.write("from paraview.simple import *\n\n")
+
     f.write("paraview.simple._DisableFirstRenderCameraReset()\n")
+    f.write('animate_dir = "{0}"\n'.format(job_dir + "/animate"))
+    f.write('post_dir = "{0}"\n\n'.format(job_dir + "/post"))
 
-    f.write("p_ = LegacyVTKReader(FileNames=[\n")
-    for particle in particles:
-      f.write('  "{0}",\n'.format(particle))
-    f.write("])\n\n")
+    f.write(
+      "ptcls = [p for p in glob.glob(post_dir + '/p_*.vtk') if 'bounding' not in p]\n"
+    )
+    f.write("cads = glob.glob(post_dir + '/cad_*.vtk')\n")
+    f.write("boxes = glob.glob(post_dir + '/*bounding*.vtk')\n")
+    f.write('match = re.compile(r"\d+")\n')
+    f.write("ptcls.sort(key=lambda s: int(match.findall(s)[-1]))\n")
+    f.write("cads.sort(key=lambda s: int(match.findall(s)[-1]))\n")
+    f.write("boxes.sort(key=lambda s: int(match.findall(s)[-1]))\n\n")
 
-    f.write("cad_ = LegacyVTKReader(FileNames=[\n")
-    for cad in cads:
-      f.write('  "{0}",\n'.format(cad))
-    f.write("])\n\n")
-
-    f.write("p_boundingBox_ = LegacyVTKReader(FileNames=[\n")
-    for box in boxes:
-      f.write('  "{0}",\n'.format(box))
-    f.write("])\n\n")
+    f.write("p_ = LegacyVTKReader(FileNames=ptcls)\n")
+    f.write("cad_ = LegacyVTKReader(FileNames=cads)\n")
+    f.write("p_boundingBox_ = LegacyVTKReader(FileNames=boxes)\n\n")
 
     f.write("animationScene1 = GetAnimationScene()\n")
     f.write("animationScene1.UpdateAnimationUsingDataTimeSteps()\n")
@@ -657,38 +649,40 @@ def write_pvbatch_py(job_dir: str, pvbatch_py: str):
     f.write("renderView1.CameraParallelScale = 0.12\n\n")
 
     f.write("SaveAnimation(\n")
-    f.write('  "{0}/animate/p_.png",\n'.format(job_dir))
+    f.write('  animate_dir + "/p_.png",\n')
     f.write("  renderView1,\n")
     f.write("  ImageResolution=[480, 640],\n")
-    f.write("  FrameWindow=[0, {0}]\n".format(str(len(particles))))
+    f.write("  FrameWindow=[0, len(ptcls)]\n")
     f.write(")\n\n")
 
 
-def write_animate_py(job_dir: str, animate_py: str, fps: float = 10):
+def create_animate_py(job_dir: str, animate_py: str, fps: float = 10):
   """write animate.py file
 
   Args:
       job_dir (str): job directory name
       animate_py (str): animate.py file
-      fps (float, optional): [description]. Defaults to 10.
+      fps (float, optional): fps. Defaults to 10.
   """
   with open(animate_py, "w") as f:
 
-    f.write("import cv2\n\n")
-    f.write('animate_path = pathlib.Path("{0}" + "/animate")\n'.format(job_dir))
+    f.write("import cv2\n")
+    f.write("import pathlib\n\n")
+    f.write('job_dir = "{0}"\n'.format(job_dir))
+    f.write('animate_path = pathlib.Path(job_dir + "/animate")\n')
+    f.write('pictures = [str(p) for p in list(animate_path.glob("**/p_*.png"))]\n\n')
     f.write('movie = str(animate_path) + "/" + pathlib.Path(job_dir).name + ".mp4"\n')
     f.write("img = cv2.imread(pictures[0])\n")
+    f.write("fps = {0}\n".format(fps if fps else 10))
     f.write('fourcc = cv2.VideoWriter_fourcc(*"mp4v")\n')
-    f.write(
-      "output = cv2.VideoWriter(movie, fourcc, {0}, (img.shape[1], img.shape[0]), True)\n".format(
-        fps
-      )
-    )
-
-    f.write('pictures = [str(p) for p in list(animate_path.glob("**/p_*.png"))]\n\n')
+    f.write("output = cv2.VideoWriter")
+    f.write("(movie, fourcc, fps, (img.shape[1], img.shape[0]), True)\n\n")
     f.write("for picture in pictures:\n")
     f.write("  img = cv2.imread(picture)\n")
-    f.write("  output.write(img)\n")
+    f.write("  output.write(img)\n\n")
+    f.write("for picture in pictures:\n")
+    f.write("  if pathlib.Path(picture).is_dir():\n")
+    f.write("    pathlib.Path(picture).unlink()\n\n")
 
 
 def measure_height(ini_list: List[str], is_cluster: bool = False):

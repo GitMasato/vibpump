@@ -5,7 +5,6 @@
 # import numpy
 import math
 import pathlib
-import re
 import shutil
 import subprocess
 

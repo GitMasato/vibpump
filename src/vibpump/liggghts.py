@@ -325,6 +325,41 @@ def execute(ini_list: List[str], is_cluster: bool = False):
     execute_sh(qsub_exe_all_sh, True) if is_cluster else execute_sh(exe_all_sh, False)
 
 
+def copy_results(
+  ini_list: List[str], is_log_sim: bool = False, is_log_post: bool = False
+):
+  """display log file
+
+  Args:
+      ini_list (List[str]): list of ini files
+      is_log_sim (bool, optional): flag to copy simulation log. Defaults to False.
+      is_log_post (bool, optional): flag to copy post-process log. Defaults to False.
+  """
+  for ini in ini_list:
+
+    jobs, parameters, clusters, parallels = read_ini_file(ini)
+    jobs_dir = str(pathlib.Path(pathlib.Path.cwd() / pathlib.Path(ini).stem))
+    str_lines = str(lines) if lines else "15"
+
+    for job in jobs:
+
+      log_sim = str(pathlib.Path(jobs_dir + "/" + job + "/log.liggghts"))
+      log_post = str(pathlib.Path(jobs_dir + "/" + job + "/log.post"))
+
+      if is_process:
+        if pathlib.Path(log_post).is_file():
+          print("\n///// {0} /////\n".format(log_post))
+          subprocess.run(["head" if is_head else "tail", log_post, "-n", str_lines])
+        else:
+          print("'{0}' does not exists!".format(log_post))
+      else:
+        if pathlib.Path(log_sim).is_file():
+          print("\n///// {0} /////\n".format(log_sim))
+          subprocess.run(["head" if is_head else "tail", log_sim, "-n", str_lines])
+        else:
+          print("'{0}' does not exists!".format(log_sim))
+
+
 def display_log(
   ini_list: List[str], is_head: bool = False, is_process: bool = False, lines: int = 15
 ):
@@ -510,6 +545,9 @@ def write_animate_process_all(is_cluster: bool, IO: TextIO):
     IO.write(" --mca btl_openib_warn_default_gid_prefix 0")
     IO.write(' bash -c "ulimit -s 10240 && cd ${DIR} ' + "&& {0}".format(pvbatch))
     IO.write(" --use-offscreen-rendering ${DIR}/animate/pvbatch.py")
+
+    # --force-offscreen-rendering
+
     IO.write(' >> ${DIR}/log.post 2>&1"\n')
     IO.write(python38 + ' ${DIR}/animate/animate.py >> ${DIR}/log.post 2>&1"\n\n')
   else:
@@ -541,6 +579,9 @@ def write_animate_process(job_dir: str, np: int, is_cluster: bool, IO: TextIO):
     IO.write(" --mca btl_openib_warn_default_gid_prefix 0")
     IO.write(' bash -c "ulimit -s 10240 && {0}'.format(pvbatch))
     IO.write(" --use-offscreen-rendering {0}".format(pvbatch_py))
+
+    # --force-offscreen-rendering
+
     IO.write(' >> {0} 2>&1"\n'.format(job_dir + "/log.post"))
     IO.write("{0} {1}\n\n".format(python38, animate_py))
 

@@ -124,6 +124,25 @@ def call_liggghts_execute(args: argparse.Namespace, parser: argparse.ArgumentPar
   liggghts.execute(ini_list, args.cluster)
 
 
+def call_liggghts_copy(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts copy command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "copy", "--help"]))
+
+  ini_list: List[str] = []
+  if args.ini:
+    for ini in args.ini:
+      if ".ini" in ini:
+        ini_list.append(ini)
+
+  if not ini_list:
+    sys.exit("no .ini file exists!")
+
+  liggghts.copy_results(ini_list, args.logSim, args.logPost)
+
+
 def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser):
   """call function when liggghts log command is given
   """
@@ -308,6 +327,31 @@ def cli_execution():
     help="flag to execute simulation on cluster" + "\n ",
   )
   subparser_execute.set_defaults(call=call_liggghts_execute)
+
+  # parser for liggghts copy function
+  subparser_copy = subparsers_liggghts.add_parser(
+    "copy",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="command for copying simulation (or post-process) results",
+    description="command 'liggghts copy': to copy simulation results\n\n"
+    + "required argument is ini file (**.ini. '--ini').\n"
+    + "default: to copy movie .mp4 file into gsync directory file.\n\n"
+    + "(see sub-option 'vibpump liggghts copy -h')\n",
+  )
+  subparser_copy.add_argument(
+    "--ini",
+    nargs="*",
+    type=str,
+    metavar="path",
+    help="path to ini file (**.ini)" + "\n ",
+  )
+  subparser_copy.add_argument(
+    "--logSim", action="store_true", help="flag to copy log of simulation" + "\n ",
+  )
+  subparser_copy.add_argument(
+    "--logPost", action="store_true", help="flag to copy log of post-process" + "\n ",
+  )
+  subparser_copy.set_defaults(call=call_liggghts_copy)
 
   # parser for liggghts log function
   subparser_log = subparsers_liggghts.add_parser(

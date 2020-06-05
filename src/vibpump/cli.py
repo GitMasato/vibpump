@@ -1,6 +1,6 @@
 """cli command for supporting vibpump projects.
 
-image commad:
+image commad: (see usage using '-h' option)
 basic required arguments is movie name and process name.
 if no movie and process is given, error will be raised.
 
@@ -8,11 +8,8 @@ output data (after image process) will be generated in
 'cv2/target-noExtension/process-name/target' directory under current location
 (e.g. (test.mp4) ./cv2/test/binarized/test.png).
 
-liggghts command:
-this supports LIGGGHTS simulations. (subcommands: 'preprocess', 'postprocess')
-basic required arguments is ini file name (**.ini).
-
-see usage '-h option'
+liggghts command: (several subcommands exist. see usage using '-h' option)
+this supports LIGGGHTS simulations.
 
 """
 import argparse
@@ -86,42 +83,80 @@ def call_liggghts(args: argparse.Namespace, parser: argparse.ArgumentParser):
     sys.exit(parser.parse_args(["liggghts", "--help"]))
 
 
-def call_liggghts_setup(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts setup command is given
+def call_liggghts_sim(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts sim command is given
   """
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "setup", "--help"]))
+    sys.exit(parser.parse_args(["liggghts", "sim", "--help"]))
 
-  ini_list: List[str] = []
-  if args.ini:
-    for ini in args.ini:
-      if ".ini" in ini:
-        ini_list.append(ini)
+  conf_list: List[str] = []
+  if args.conf_sim:
+    for conf in args.conf_sim:
+      if ".conf-" in conf:
+        conf_list.append(conf)
 
-  if not ini_list:
-    sys.exit("no .ini file exists!")
+  if not conf_list:
+    sys.exit("no .conf file exists!")
 
-  liggghts.setup(ini_list, args.cluster, args.animate, args.execute)
+  liggghts.setup_sim(conf_list, args.cluster, args.animate, args.execute)
 
 
-def call_liggghts_execute(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts execute command is given
+def call_liggghts_post(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts post command is given
   """
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "execute", "--help"]))
+    sys.exit(parser.parse_args(["liggghts", "post", "--help"]))
 
-  ini_list: List[str] = []
-  if args.ini:
-    for ini in args.ini:
-      if ".ini" in ini:
-        ini_list.append(ini)
+  conf_list: List[str] = []
+  if args.conf_sim:
+    for conf in args.conf_sim:
+      if ".conf-" in conf:
+        conf_list.append(conf)
 
-  if not ini_list:
-    sys.exit("no .ini file exists!")
+  if not conf_list:
+    sys.exit("no .conf file exists!")
 
-  liggghts.execute(ini_list, args.cluster)
+  liggghts.setup_post(conf_list, args.cluster, args.animate, args.execute)
+
+
+def call_liggghts_exe_sim(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts exe-sim command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "exe-sim", "--help"]))
+
+  conf_list: List[str] = []
+  if args.conf_sim:
+    for conf in args.conf_sim:
+      if ".conf-" in conf:
+        conf_list.append(conf)
+
+  if not conf_list:
+    sys.exit("no .conf file exists!")
+
+  liggghts.execute_sim(conf_list, args.cluster)
+
+
+def call_liggghts_exe_post(args: argparse.Namespace, parser: argparse.ArgumentParser):
+  """call function when liggghts exe-post command is given
+  """
+  items = [value for key, value in args.__dict__.items() if key != "call"]
+  if not [item for item in items if (item is not None) and (item is not False)]:
+    sys.exit(parser.parse_args(["liggghts", "exe-post", "--help"]))
+
+  conf_list: List[str] = []
+  if args.conf_sim:
+    for conf in args.conf_sim:
+      if ".conf-" in conf:
+        conf_list.append(conf)
+
+  if not conf_list:
+    sys.exit("no .conf file exists!")
+
+  liggghts.execute_post(conf_list, args.cluster)
 
 
 def call_liggghts_copy(args: argparse.Namespace, parser: argparse.ArgumentParser):
@@ -131,16 +166,16 @@ def call_liggghts_copy(args: argparse.Namespace, parser: argparse.ArgumentParser
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "copy", "--help"]))
 
-  ini_list: List[str] = []
-  if args.ini:
-    for ini in args.ini:
-      if ".ini" in ini:
-        ini_list.append(ini)
+  conf_list: List[str] = []
+  if args.conf_sim:
+    for conf in args.conf_sim:
+      if ".conf-" in conf:
+        conf_list.append(conf)
 
-  if not ini_list:
-    sys.exit("no .ini file exists!")
+  if not conf_list:
+    sys.exit("no .conf file exists!")
 
-  liggghts.copy_results(ini_list, args.logSim, args.logPost)
+  liggghts.copy_result(conf_list, args.movie, args.log_liggghts, args.log_post)
 
 
 def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser):
@@ -150,42 +185,16 @@ def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser)
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "log", "--help"]))
 
-  ini_list: List[str] = []
-  if args.ini:
-    for ini in args.ini:
-      if ".ini" in ini:
-        ini_list.append(ini)
+  conf_list: List[str] = []
+  if args.conf_sim:
+    for conf in args.conf_sim:
+      if ".conf-" in conf:
+        conf_list.append(conf)
 
-  if not ini_list:
-    sys.exit("no .ini file exists!")
+  if not conf_list:
+    sys.exit("no .conf file exists!")
 
-  liggghts.display_log(ini_list, args.head, args.process, args.line)
-
-
-def call_liggghts_process(args: argparse.Namespace, parser: argparse.ArgumentParser):
-  """call function when liggghts process command is given
-  """
-  items = [value for key, value in args.__dict__.items() if key != "call"]
-  if not [item for item in items if (item is not None) and (item is not False)]:
-    sys.exit(parser.parse_args(["liggghts", "process", "--help"]))
-
-  ini_list: List[str] = []
-  if args.ini:
-    for ini in args.ini:
-      if ".ini" in ini:
-        ini_list.append(ini)
-
-  if not ini_list:
-    sys.exit("no .ini file exists!")
-
-  # if args.animate:
-  #   liggghts.animate(ini_list, args.cluster, args.fps)
-
-  if args.measureHeight:
-    liggghts.measure_height(ini_list, args.cluster)
-
-  if args.graphHeight:
-    liggghts.graph_height(ini_list, args.cluster)
+  liggghts.display_log(conf_list, args.head, args.process, args.line)
 
 
 def cli_execution():
@@ -273,60 +282,160 @@ def cli_execution():
   subparsers_liggghts = parser_liggghts.add_subparsers()
 
   # parser for liggghts setup function
-  subparser_setup = subparsers_liggghts.add_parser(
-    "setup",
+  subparser_sim = subparsers_liggghts.add_parser(
+    "sim",
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for setup of simulation",
-    description="command 'liggghts setup': to generate files for simulation\n\n"
-    + "basic required arguments is ini file (**.ini. '--ini').\n\n"
-    + "(see sub-option 'vibpump liggghts setup -h')\n",
+    description="command 'liggghts sim': to generate files for simulation\n\n"
+    + "basic required arguments is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "(see sub-option 'vibpump liggghts sim -h')\n",
   )
-  subparser_setup.add_argument(
-    "--ini",
+  subparser_sim.add_argument(
+    "--conf-sim",
     nargs="*",
     type=str,
+    dest="conf_sim",
     metavar="path",
-    help="path to ini file (**.ini)" + "\n ",
+    help="path to conf-sim file (**.conf-sim)" + "\n ",
   )
-  subparser_setup.add_argument(
+  subparser_sim.add_argument(
     "--cluster",
     action="store_true",
     help="to generate files for running on cluster" + "\n ",
   )
-  subparser_setup.add_argument(
+  subparser_sim.add_argument(
     "--animate",
     action="store_true",
     help="flag to create movie file from simulation results" + "\n ",
   )
-  subparser_setup.add_argument(
+  subparser_sim.add_argument(
     "--execute",
     action="store_true",
     help="to start simulations using generated files" + "\n ",
   )
-  subparser_setup.set_defaults(call=call_liggghts_setup)
+  subparser_sim.set_defaults(call=call_liggghts_sim)
 
-  # parser for liggghts execute function
-  subparser_execute = subparsers_liggghts.add_parser(
-    "execute",
+  # parser for liggghts process function
+  subparser_post = subparsers_liggghts.add_parser(
+    "post",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="command for executing simulation",
-    description="command 'liggghts execute': to execute simulation\n\n"
-    + "required argument is ini file (**.ini. '--ini').\n\n"
-    + "(see sub-option 'vibpump liggghts execute -h')\n",
+    help="command for post-process of simulation",
+    description="command 'liggghts post': post-process of simulation\n\n"
+    + "basic required arguments is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "(see sub-option 'vibpump liggghts post -h')\n",
   )
-  subparser_execute.add_argument(
-    "--ini",
+  subparser_post.add_argument(
+    "--conf-sim",
     nargs="*",
     type=str,
+    dest="conf_sim",
     metavar="path",
-    help="path to ini file (**.ini)" + "\n ",
+    help="path to conf-sim file (**.conf-sim)" + "\n ",
   )
-  subparser_execute.add_argument(
+  subparser_post.add_argument(
+    "--conf-post",
+    nargs="*",
+    type=str,
+    dest="conf_post",
+    metavar="path",
+    help="path to conf_post file (**.conf-post)\n\n"
+    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
+    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
+    + "\n ",
+  )
+  subparser_post.add_argument(
+    "--cluster",
+    action="store_true",
+    help="flag to generate post-process files for running on cluster" + "\n ",
+  )
+  subparser_post.add_argument(
+    "--animate",
+    action="store_true",
+    help="to create movie from simulation results" + "\n ",
+  )
+  subparser_post.add_argument(
+    "--fps",
+    type=int,
+    metavar="fps",
+    help="fps when to create movie file from simulation results" + "\n ",
+  )
+  subparser_post.add_argument(
+    "--measure-height",
+    dest="measure_height",
+    action="store_true",
+    help="to measure climbing height from simulation results" + "\n ",
+  )
+  subparser_post.add_argument(
+    "--graph-height",
+    dest="graph_height",
+    action="store_true",
+    help="to graph climbing height results" + "\n ",
+  )
+  subparser_post.add_argument(
+    "--execute",
+    action="store_true",
+    help="to start simulations using generated files" + "\n ",
+  )
+  subparser_post.set_defaults(call=call_liggghts_post)
+
+  # parser for liggghts execute function
+  subparser_exe_sim = subparsers_liggghts.add_parser(
+    "exe-sim",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="command for executing simulation",
+    description="command 'liggghts exe-sim': to execute simulation\n\n"
+    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "(see sub-option 'vibpump liggghts exe-sim -h')\n",
+  )
+  subparser_exe_sim.add_argument(
+    "--conf-sim",
+    nargs="*",
+    type=str,
+    dest="conf_sim",
+    metavar="path",
+    help="path to conf-sim file (**.conf-sim)" + "\n ",
+  )
+  subparser_exe_sim.add_argument(
     "--cluster",
     action="store_true",
     help="flag to execute simulation on cluster" + "\n ",
   )
-  subparser_execute.set_defaults(call=call_liggghts_execute)
+  subparser_exe_sim.set_defaults(call=call_liggghts_exe_sim)
+
+  # parser for post-process execute function
+  subparser_exe_post = subparsers_liggghts.add_parser(
+    "exe-post",
+    formatter_class=argparse.RawTextHelpFormatter,
+    help="command for executing post-process",
+    description="command 'liggghts exe-post': to execute post-process\n\n"
+    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "(see sub-option 'vibpump liggghts exe-post -h')\n",
+  )
+  subparser_exe_post.add_argument(
+    "--conf-sim",
+    nargs="*",
+    type=str,
+    dest="conf_sim",
+    metavar="path",
+    help="path to conf-sim file (**.conf-sim)" + "\n ",
+  )
+  subparser_exe_post.add_argument(
+    "--conf-post",
+    nargs="*",
+    type=str,
+    dest="conf_post",
+    metavar="path",
+    help="path to conf_post file (**.conf-post)\n\n"
+    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
+    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
+    + "\n ",
+  )
+  subparser_exe_post.add_argument(
+    "--cluster",
+    action="store_true",
+    help="flag to execute simulation on cluster" + "\n ",
+  )
+  subparser_exe_post.set_defaults(call=call_liggghts_exe_post)
 
   # parser for liggghts copy function
   subparser_copy = subparsers_liggghts.add_parser(
@@ -334,22 +443,43 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for copying simulation (or post-process) results",
     description="command 'liggghts copy': to copy simulation results\n\n"
-    + "required argument is ini file (**.ini. '--ini').\n"
-    + "default: to copy movie .mp4 file into gsync directory file.\n\n"
+    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "default: to copy movie .mp4 file into gsync directory file.\n"
     + "(see sub-option 'vibpump liggghts copy -h')\n",
   )
   subparser_copy.add_argument(
-    "--ini",
+    "--conf-sim",
     nargs="*",
     type=str,
+    dest="conf_sim",
     metavar="path",
-    help="path to ini file (**.ini)" + "\n ",
+    help="path to conf-sim file (**.conf-sim)" + "\n ",
   )
   subparser_copy.add_argument(
-    "--logSim", action="store_true", help="flag to copy log of simulation" + "\n ",
+    "--conf-post",
+    nargs="*",
+    type=str,
+    dest="conf_post",
+    metavar="path",
+    help="path to conf_post file (**.conf-post)\n\n"
+    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
+    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
+    + "\n ",
   )
   subparser_copy.add_argument(
-    "--logPost", action="store_true", help="flag to copy log of post-process" + "\n ",
+    "--movie", action="store_true", help="flag to copy movie of simulation" + "\n ",
+  )
+  subparser_copy.add_argument(
+    "--log-liggghts",
+    dest="log_liggghts",
+    action="store_true",
+    help="flag to copy log of simulation" + "\n ",
+  )
+  subparser_copy.add_argument(
+    "--log-post",
+    dest="log_post",
+    action="store_true",
+    help="flag to copy log of post-process" + "\n ",
   )
   subparser_copy.set_defaults(call=call_liggghts_copy)
 
@@ -359,16 +489,28 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for showing simulation (or post-process) log",
     description="command 'liggghts log': to show log\n\n"
-    + "required argument is ini file (**.ini. '--ini').\n"
-    + "default: to show 15 lines of tail part of simulation log file.\n\n"
+    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "default: to show 15 lines of tail part of simulation log file.\n"
     + "(see sub-option 'vibpump liggghts log -h')\n",
   )
   subparser_log.add_argument(
-    "--ini",
+    "--conf-sim",
     nargs="*",
     type=str,
+    dest="conf_sim",
     metavar="path",
-    help="path to ini file (**.ini)" + "\n ",
+    help="path to conf-sim file (**.conf-sim)" + "\n ",
+  )
+  subparser_log.add_argument(
+    "--conf-post",
+    nargs="*",
+    type=str,
+    dest="conf_post",
+    metavar="path",
+    help="path to conf_post file (**.conf-post)\n\n"
+    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
+    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
+    + "\n ",
   )
   subparser_log.add_argument(
     "--head", action="store_true", help="flag to show head part of log file" + "\n ",
@@ -384,50 +526,6 @@ def cli_execution():
     help="how many lines of log file to be shown (default: 15)" + "\n ",
   )
   subparser_log.set_defaults(call=call_liggghts_log)
-
-  # parser for liggghts process function
-  subparser_process = subparsers_liggghts.add_parser(
-    "process",
-    formatter_class=argparse.RawTextHelpFormatter,
-    help="command for post-process of simulation",
-    description="command 'liggghts process': post-process of simulation\n\n"
-    + "basic required arguments is ini file (**.ini. '--ini').\n\n"
-    + "(see sub-option 'vibpump liggghts process -h')\n",
-  )
-  subparser_process.add_argument(
-    "--ini",
-    nargs="*",
-    type=str,
-    metavar="path",
-    help="path to ini file (**.ini)" + "\n ",
-  )
-  subparser_process.add_argument(
-    "--cluster",
-    action="store_true",
-    help="flag to generate post-process files for running on cluster" + "\n ",
-  )
-  subparser_process.add_argument(
-    "--animate",
-    action="store_true",
-    help="to create movie from simulation results" + "\n ",
-  )
-  subparser_process.add_argument(
-    "--fps",
-    type=int,
-    metavar="fps",
-    help="fps when to create movie file from simulation results" + "\n ",
-  )
-  subparser_process.add_argument(
-    "--measureHeight",
-    action="store_true",
-    help="to measure climbing height from simulation results" + "\n ",
-  )
-  subparser_process.add_argument(
-    "--graphHeight",
-    action="store_true",
-    help="to graph climbing height results" + "\n ",
-  )
-  subparser_process.set_defaults(call=call_liggghts_process)
 
   if len(sys.argv) <= 1:
     sys.exit(parser.format_help())

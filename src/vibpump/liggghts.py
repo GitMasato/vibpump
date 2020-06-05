@@ -608,8 +608,8 @@ def write_animate_all(is_cluster: bool, IO: TextIO):
   if is_cluster:
     IO.write(mpiexec + " -np ${N_POST} \\\n")
     IO.write(pvbatch + " --force-offscreen-rendering \\\n")
-    IO.write('${DIR}/animate/pvbatch.py >> ${DIR}/log.post 2>&1"\n\n')
-    IO.write(python38 + ' ${DIR}/animate/animate.py >> ${DIR}/log.post 2>&1"\n\n')
+    IO.write("${DIR}/animate/pvbatch.py >> ${DIR}/log.post 2>&1\n\n")
+    IO.write(python38 + " ${DIR}/animate/animate.py >> ${DIR}/log.post 2>&1\n\n")
   else:
     IO.write("  " + mpiexec + " -np ${3} \\\n")
     IO.write("  " + pvbatch + " --force-offscreen-rendering \\\n")

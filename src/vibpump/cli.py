@@ -90,12 +90,7 @@ def call_liggghts_sim(args: argparse.Namespace, parser: argparse.ArgumentParser)
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "sim", "--help"]))
 
-  conf_list: List[str] = []
-  if args.conf_sim:
-    for conf in args.conf_sim:
-      if ".conf-" in conf:
-        conf_list.append(conf)
-
+  conf_list = get_conf_fullpath_list(args.conf_sim)
   if not conf_list:
     sys.exit("no .conf file exists!")
 
@@ -109,12 +104,7 @@ def call_liggghts_post(args: argparse.Namespace, parser: argparse.ArgumentParser
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "post", "--help"]))
 
-  conf_list: List[str] = []
-  if args.conf_sim:
-    for conf in args.conf_sim:
-      if ".conf-" in conf:
-        conf_list.append(conf)
-
+  conf_list = get_conf_fullpath_list(args.conf_sim)
   if not conf_list:
     sys.exit("no .conf file exists!")
 
@@ -128,12 +118,7 @@ def call_liggghts_exe_sim(args: argparse.Namespace, parser: argparse.ArgumentPar
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "exe-sim", "--help"]))
 
-  conf_list: List[str] = []
-  if args.conf_sim:
-    for conf in args.conf_sim:
-      if ".conf-" in conf:
-        conf_list.append(conf)
-
+  conf_list = get_conf_fullpath_list(args.conf_sim)
   if not conf_list:
     sys.exit("no .conf file exists!")
 
@@ -147,12 +132,7 @@ def call_liggghts_exe_post(args: argparse.Namespace, parser: argparse.ArgumentPa
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "exe-post", "--help"]))
 
-  conf_list: List[str] = []
-  if args.conf_sim:
-    for conf in args.conf_sim:
-      if ".conf-" in conf:
-        conf_list.append(conf)
-
+  conf_list = get_conf_fullpath_list(args.conf_sim)
   if not conf_list:
     sys.exit("no .conf file exists!")
 
@@ -166,12 +146,7 @@ def call_liggghts_copy(args: argparse.Namespace, parser: argparse.ArgumentParser
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "copy", "--help"]))
 
-  conf_list: List[str] = []
-  if args.conf_sim:
-    for conf in args.conf_sim:
-      if ".conf-" in conf:
-        conf_list.append(conf)
-
+  conf_list = get_conf_fullpath_list(args.conf_sim)
   if not conf_list:
     sys.exit("no .conf file exists!")
 
@@ -185,16 +160,31 @@ def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser)
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "log", "--help"]))
 
-  conf_list: List[str] = []
-  if args.conf_sim:
-    for conf in args.conf_sim:
-      if ".conf-" in conf:
-        conf_list.append(conf)
-
+  conf_list = get_conf_fullpath_list(args.conf_sim)
   if not conf_list:
     sys.exit("no .conf file exists!")
 
   liggghts.display_log(conf_list, args.head, args.process, args.line)
+
+
+def get_conf_fullpath_list(input_list: List[str] = None) -> List[str]:
+  """get list of conf file as full path
+
+  Args:
+      input_list (List[str], optional): input conf file list. Defaults to None.
+
+  Returns:
+      List[str]: list of full path of files existing
+  """
+  cr_path = pathlib.Path.cwd()
+  fullpath_list = []
+
+  if input_list:
+    for i in input_list:
+      if (".conf-" in i) and (pathlib.Path(cr_path / i).is_file()):
+        fullpath_list.append(str(pathlib.Path(cr_path / i)))
+
+  return fullpath_list
 
 
 def cli_execution():

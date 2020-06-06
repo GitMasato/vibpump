@@ -91,7 +91,7 @@ def read_conf_file(
   return jobs, parameters, clusters, proc_size
 
 
-def check_sim_input(conf: str, jobs: List[str], parameters: List[List[str]]) -> bool:
+def check_conf_input(conf: str, jobs: List[str], parameters: List[List[str]]) -> bool:
   """check if conf file inputs are correct
 
   Args:
@@ -125,29 +125,11 @@ def check_sim_input(conf: str, jobs: List[str], parameters: List[List[str]]) -> 
 
   for parameter in parameters:
 
-    if not [p for p in parameter if "mesh/surface file " in p]:
-      continue
+    if [p for p in parameter if "mesh/surface file " in p]:
 
-    if len(parameter) == 1:
+      if len(parameter) == 1:
 
-      splitted = parameter[0].split()
-      cad_input_path = pathlib.Path(splitted[splitted.index("file") + 1])
-      cad_file_path = pathlib.Path(conf).parent.resolve() / cad_input_path
-
-      if not cad_file_path.is_file():
-        print("{0}: cad file does not exist!\n{1}\n".format(conf, str(cad_file_path)))
-        return False
-
-      parameter[0] = parameter[0].replace(
-        "file {0}".format(str(cad_input_path)),
-        "file {0}".format(str(cad_file_path.resolve())),
-      )
-
-    else:
-
-      for idx in range(len(parameter)):
-
-        splitted = parameter[idx].split()
+        splitted = parameter[0].split()
         cad_input_path = pathlib.Path(splitted[splitted.index("file") + 1])
         cad_file_path = pathlib.Path(conf).parent.resolve() / cad_input_path
 
@@ -155,15 +137,107 @@ def check_sim_input(conf: str, jobs: List[str], parameters: List[List[str]]) -> 
           print("{0}: cad file does not exist!\n{1}\n".format(conf, str(cad_file_path)))
           return False
 
-        parameter[idx] = parameter[idx].replace(
+        parameter[0] = parameter[0].replace(
           "file {0}".format(str(cad_input_path)),
           "file {0}".format(str(cad_file_path.resolve())),
         )
 
+      else:
+
+        for idx in range(len(parameter)):
+
+          splitted = parameter[idx].split()
+          cad_input_path = pathlib.Path(splitted[splitted.index("file") + 1])
+          cad_file_path = pathlib.Path(conf).parent.resolve() / cad_input_path
+
+          if not cad_file_path.is_file():
+            print(
+              "{0}: cad file does not exist!\n{1}\n".format(conf, str(cad_file_path))
+            )
+            return False
+
+          parameter[idx] = parameter[idx].replace(
+            "file {0}".format(str(cad_input_path)),
+            "file {0}".format(str(cad_file_path.resolve())),
+          )
+
+    if [p for p in parameter if "read_restart " in p]:
+
+      if len(parameter) == 1:
+
+        splitted = parameter[0].split()
+        restart_input = pathlib.Path(splitted[splitted.index("read_restart") + 1])
+        restart_path = pathlib.Path(conf).parent.resolve() / restart_input
+
+        if not restart_path.is_file():
+          print("{0}: restart file does not exist!\n".format(conf))
+          print("{0}\n".format(str(restart_path)))
+          return False
+
+        parameter[0] = parameter[0].replace(
+          "read_restart {0}".format(str(restart_input)),
+          "read_restart {0}".format(str(restart_path.resolve())),
+        )
+
+      else:
+
+        for idx in range(len(parameter)):
+
+          splitted = parameter[idx].split()
+          restart_input = pathlib.Path(splitted[splitted.index("read_restart") + 1])
+          restart_path = pathlib.Path(conf).parent.resolve() / restart_input
+
+          if not restart_path.is_file():
+            print("{0}: restart file does not exist!\n".format(conf))
+            print("{0}\n".format(str(restart_path)))
+            return False
+
+          parameter[idx] = parameter[idx].replace(
+            "read_restart {0}".format(str(restart_input)),
+            "read_restart {0}".format(str(restart_path.resolve())),
+          )
+
   return True
 
 
-def check_cluster_sim_input(
+def check_cluster_input(
+  conf: str, jobs: List[str], clusters: List[str], proc_sizes: List[int]
+) -> bool:
+  """check if conf file inputs are correct
+
+  Args:
+      conf (str): conf file
+      jobs (List[str]): jobs
+      clusters (List[str]): cluster parameters
+      proc_sizes (List[int]): list of parallel process numbers
+
+  Returns:
+      bool: if inputs are correct (true:correct)
+  """
+  if not clusters:
+    print("{0}: no cluster parameter is given!".format(conf))
+    return False
+
+  if len(clusters) != len(jobs):
+    print("{0}: cluster parameter size is wrong!\n{1}\n".format(conf, clusters))
+    return False
+
+  c_proc_size = [1 for cluster in clusters]
+
+  for idx, cluster in enumerate(clusters):
+    c_proc_size[idx] = sum(
+      [int(c.split("=")[1]) for c in cluster.split() if "slots=" in c]
+    )
+
+  if proc_sizes != c_proc_size:
+    print("{0}: parallel process size is not equal!\n".format(conf))
+    print("processors: {0}\nhostfile: {1}\n".format(proc_sizes, c_proc_size))
+    return False
+
+  return True
+
+
+def check_post_existence(
   conf: str, jobs: List[str], clusters: List[str], proc_sizes: List[int]
 ) -> bool:
   """check if conf file inputs are correct
@@ -252,9 +326,9 @@ def setup_sim(
 
     jobs, parameters, clusters, proc_sizes = read_conf_file(conf)
 
-    if not check_sim_input(conf, jobs, parameters):
+    if not check_conf_input(conf, jobs, parameters):
       continue
-    if is_cluster and (not check_cluster_sim_input(conf, jobs, clusters, proc_sizes)):
+    if is_cluster and (not check_cluster_input(conf, jobs, clusters, proc_sizes)):
       continue
 
     jobs_dir = str(pathlib.Path(conf).parent / pathlib.Path(conf).stem)
@@ -329,6 +403,10 @@ def setup_post(
   for conf in conf_list:
 
     jobs, parameters, clusters, proc_sizes = read_conf_file(conf)
+
+    if not check_conf_input(conf, jobs, parameters):
+      continue
+
     jobs_dir = str(pathlib.Path(conf).parent / pathlib.Path(conf).stem)
     pathlib.Path(jobs_dir).mkdir(parents=True, exist_ok=True)
 
@@ -471,7 +549,7 @@ def write_sim_all(IO: TextIO):
   IO.write("  mpirun \\\n")
   IO.write("  -x LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0} \\\n".format(vtk))
   IO.write("  -np ${2} \\\n")
-  IO.write("  {0} < ".format(lmp) + "${1}/in.script >/dev/null 2>&1\n\n")
+  IO.write("  {0} < ".format(lmp) + "${1}/in.script >> ${1}/log.liggghts 2>&1\n\n")
 
 
 def write_sim_all_cluster(IO: TextIO):
@@ -563,6 +641,7 @@ def write_animate_all_cluster(IO: TextIO):
   IO.write(mpiexec + " -np ${N_POST} \\\n")
   IO.write(pvbatch + " --force-offscreen-rendering \\\n")
   IO.write("${DIR}/animate/pvbatch.py >> ${DIR}/log.post 2>&1\n\n")
+  IO.write("export LD_LIBRARY_PATH=$HOME/local/lib64:$LD_LIBRARY_PATH\n")
   IO.write(python38 + " ${DIR}/animate/animate.py >> ${DIR}/log.post 2>&1\n\n")
 
 
@@ -592,9 +671,10 @@ def write_animate_cluster(job_dir: str, proc_size: int, IO: TextIO):
   mpiexec, pvbatch, python38 = get_mpiexec_pvbatch_python38_path()
   IO.write("{0} -np {1} {2} \\\n".format(mpiexec, proc_size, pvbatch))
   IO.write("--force-offscreen-rendering {0}/animate/pvbatch.py \\\n".format(job_dir))
-  IO.write('>> {0}/log.post 2>&1"\n\n'.format(job_dir))
+  IO.write(">> {0}/log.post 2>&1\n\n".format(job_dir))
+  IO.write("export LD_LIBRARY_PATH=$HOME/local/lib64:$LD_LIBRARY_PATH\n")
   IO.write("{0} {1}/animate/animate.py \\\n".format(python38, job_dir))
-  IO.write('>> {0}/log.post 2>&1"\n\n'.format(job_dir))
+  IO.write(">> {0}/log.post 2>&1\n\n".format(job_dir))
 
 
 def get_mpiexec_pvbatch_python38_path() -> Tuple[str, str, str]:
@@ -802,7 +882,7 @@ def execute_post(conf_list: List[str], is_cluster: bool = False):
 def copy_result(
   conf_list: List[str],
   is_movie: bool = False,
-  is_log_liggghts: bool = False,
+  is_log_sim: bool = False,
   is_log_post: bool = False,
 ):
   """display log file
@@ -810,7 +890,7 @@ def copy_result(
   Args:
       conf_list (List[str]): list of conf files
       is_movie (bool, optional): flag to copy simulation movie. Defaults to False.
-      is_log_liggghts (bool, optional): flag to copy simulation log. Defaults to False.
+      is_log_sim (bool, optional): flag to copy simulation log. Defaults to False.
       is_log_post (bool, optional): flag to copy post-process log. Defaults to False.
   """
   for conf in conf_list:
@@ -838,7 +918,7 @@ def copy_result(
         else:
           print("'{0}' does not exists!".format(movie))
 
-      if is_log_liggghts:
+      if is_log_sim:
         if pathlib.Path(log_liggghts).is_file():
           subprocess.run(["cp", log_liggghts, cp_job_dir])
           print("'{0}' is copied to '{1}'!".format(log_liggghts, cp_job_dir))
@@ -854,39 +934,39 @@ def copy_result(
 
 
 def display_log(
-  conf_list: List[str],
-  is_head: bool = False,
-  is_process: bool = False,
-  lines: int = 15,
+  conf_list: List[str], log_type: str = None, is_head: bool = False, lines: int = 15,
 ):
   """display log file
 
   Args:
       conf_list (List[str]): list of conf files
+      log_type (str, optional): type log to be displayed.
       is_head (bool, optional): flag to show head part of log file. Defaults to False.
-      is_process (bool, optional): flag to show post-process log. Defaults to False.
-      lines (int, optional): how many lines will be shown. Defaults to 15.
+      lines (int, optional): how many lines will be shown. Defaults to 25.
   """
+  if not log_type:
+    print("no log 'type' is specified!")
+    return False
+
   for conf in conf_list:
 
     jobs, parameters, clusters, proc_size = read_conf_file(conf)
     jobs_dir = str(pathlib.Path(conf).parent / pathlib.Path(conf).stem)
-    str_lines = str(lines) if lines else "15"
+    str_lines = str(lines) if lines else "25"
 
     for job in jobs:
 
-      log_liggghts = jobs_dir + "/" + job + "/log.liggghts"
-      log_post = jobs_dir + "/" + job + "/log.post"
+      if log_type == "log-sim":
+        log = jobs_dir + "/" + job + "/log.liggghts"
+      elif log_type == "log-post":
+        log = jobs_dir + "/" + job + "/log.post"
+      elif log_type == "log-sim-all":
+        pass
+      elif log_type == "log-post-all":
+        pass
 
-      if is_process:
-        if pathlib.Path(log_post).is_file():
-          print("\n///// {0} /////\n".format(log_post))
-          subprocess.run(["head" if is_head else "tail", log_post, "-n", str_lines])
-        else:
-          print("'{0}' does not exists!".format(log_post))
+      if pathlib.Path(log).is_file():
+        print("\n///// {0} /////\n".format(log))
+        subprocess.run(["head" if is_head else "tail", log, "-n", str_lines])
       else:
-        if pathlib.Path(log_liggghts).is_file():
-          print("\n///// {0} /////\n".format(log_liggghts))
-          subprocess.run(["head" if is_head else "tail", log_liggghts, "-n", str_lines])
-        else:
-          print("'{0}' does not exists!".format(log_liggghts))
+        print("'{0}' does not exists!".format(log))

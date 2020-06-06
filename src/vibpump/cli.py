@@ -90,9 +90,9 @@ def call_liggghts_sim(args: argparse.Namespace, parser: argparse.ArgumentParser)
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "sim", "--help"]))
 
-  conf_list = get_conf_fullpath_list(args.conf_sim)
+  conf_list = get_fullpath_conf(args.conf)
   if not conf_list:
-    sys.exit("no .conf file exists!")
+    sys.exit("no '**.conf**' file exists!")
 
   liggghts.setup_sim(conf_list, args.cluster, args.animate, args.execute)
 
@@ -104,9 +104,9 @@ def call_liggghts_post(args: argparse.Namespace, parser: argparse.ArgumentParser
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "post", "--help"]))
 
-  conf_list = get_conf_fullpath_list(args.conf_sim)
+  conf_list = get_fullpath_conf(args.conf)
   if not conf_list:
-    sys.exit("no .conf file exists!")
+    sys.exit("no '**.conf**' file exists!")
 
   liggghts.setup_post(conf_list, args.cluster, args.animate, args.execute)
 
@@ -118,9 +118,9 @@ def call_liggghts_exe_sim(args: argparse.Namespace, parser: argparse.ArgumentPar
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "exe-sim", "--help"]))
 
-  conf_list = get_conf_fullpath_list(args.conf_sim)
+  conf_list = get_fullpath_conf(args.conf)
   if not conf_list:
-    sys.exit("no .conf file exists!")
+    sys.exit("no '**.conf**' file exists!")
 
   liggghts.execute_sim(conf_list, args.cluster)
 
@@ -132,9 +132,9 @@ def call_liggghts_exe_post(args: argparse.Namespace, parser: argparse.ArgumentPa
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "exe-post", "--help"]))
 
-  conf_list = get_conf_fullpath_list(args.conf_sim)
+  conf_list = get_fullpath_conf(args.conf)
   if not conf_list:
-    sys.exit("no .conf file exists!")
+    sys.exit("no '**.conf**' file exists!")
 
   liggghts.execute_post(conf_list, args.cluster)
 
@@ -146,11 +146,11 @@ def call_liggghts_copy(args: argparse.Namespace, parser: argparse.ArgumentParser
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "copy", "--help"]))
 
-  conf_list = get_conf_fullpath_list(args.conf_sim)
+  conf_list = get_fullpath_conf(args.conf)
   if not conf_list:
-    sys.exit("no .conf file exists!")
+    sys.exit("no '**.conf**' file exists!")
 
-  liggghts.copy_result(conf_list, args.movie, args.log_liggghts, args.log_post)
+  liggghts.copy_result(conf_list, args.movie, args.log_sim, args.log_post)
 
 
 def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser):
@@ -160,15 +160,15 @@ def call_liggghts_log(args: argparse.Namespace, parser: argparse.ArgumentParser)
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["liggghts", "log", "--help"]))
 
-  conf_list = get_conf_fullpath_list(args.conf_sim)
+  conf_list = get_fullpath_conf(args.conf)
   if not conf_list:
-    sys.exit("no .conf file exists!")
+    sys.exit("no '**.conf**' file exists!")
 
-  liggghts.display_log(conf_list, args.head, args.process, args.line)
+  liggghts.display_log(conf_list, args.type, args.head, args.line)
 
 
-def get_conf_fullpath_list(input_list: List[str] = None) -> List[str]:
-  """get list of conf file as full path
+def get_fullpath_conf(input_list: List[str] = None) -> List[str]:
+  """get full path list of conf file
 
   Args:
       input_list (List[str], optional): input conf file list. Defaults to None.
@@ -181,7 +181,7 @@ def get_conf_fullpath_list(input_list: List[str] = None) -> List[str]:
 
   if input_list:
     for i in input_list:
-      if (".conf-" in i) and (pathlib.Path(cr_path / i).is_file()):
+      if (".conf" in i) and (pathlib.Path(cr_path / i).is_file()):
         fullpath_list.append(str(pathlib.Path(cr_path / i)))
 
   return fullpath_list
@@ -277,16 +277,15 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for setup of simulation",
     description="command 'liggghts sim': to generate files for simulation\n\n"
-    + "basic required arguments is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "basic required arguments is conf file (**.conf**. '--conf').\n"
     + "(see sub-option 'vibpump liggghts sim -h')\n",
   )
   subparser_sim.add_argument(
-    "--conf-sim",
+    "--conf",
     nargs="*",
     type=str,
-    dest="conf_sim",
     metavar="path",
-    help="path to conf-sim file (**.conf-sim)" + "\n ",
+    help="path to conf file (**.conf**)" + "\n ",
   )
   subparser_sim.add_argument(
     "--cluster",
@@ -311,27 +310,15 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for post-process of simulation",
     description="command 'liggghts post': post-process of simulation\n\n"
-    + "basic required arguments is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "basic required arguments is conf file (**.conf**. '--conf').\n"
     + "(see sub-option 'vibpump liggghts post -h')\n",
   )
   subparser_post.add_argument(
-    "--conf-sim",
+    "--conf",
     nargs="*",
     type=str,
-    dest="conf_sim",
     metavar="path",
-    help="path to conf-sim file (**.conf-sim)" + "\n ",
-  )
-  subparser_post.add_argument(
-    "--conf-post",
-    nargs="*",
-    type=str,
-    dest="conf_post",
-    metavar="path",
-    help="path to conf_post file (**.conf-post)\n\n"
-    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
-    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
-    + "\n ",
+    help="path to conf file (**.conf**)" + "\n ",
   )
   subparser_post.add_argument(
     "--cluster",
@@ -374,16 +361,15 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for executing simulation",
     description="command 'liggghts exe-sim': to execute simulation\n\n"
-    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "required argument is conf file (**.conf**. '--conf').\n"
     + "(see sub-option 'vibpump liggghts exe-sim -h')\n",
   )
   subparser_exe_sim.add_argument(
-    "--conf-sim",
+    "--conf",
     nargs="*",
     type=str,
-    dest="conf_sim",
     metavar="path",
-    help="path to conf-sim file (**.conf-sim)" + "\n ",
+    help="path to conf file (**.conf**)" + "\n ",
   )
   subparser_exe_sim.add_argument(
     "--cluster",
@@ -398,27 +384,15 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for executing post-process",
     description="command 'liggghts exe-post': to execute post-process\n\n"
-    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "required argument is conf file (**.conf**. '--conf').\n"
     + "(see sub-option 'vibpump liggghts exe-post -h')\n",
   )
   subparser_exe_post.add_argument(
-    "--conf-sim",
+    "--conf",
     nargs="*",
     type=str,
-    dest="conf_sim",
     metavar="path",
-    help="path to conf-sim file (**.conf-sim)" + "\n ",
-  )
-  subparser_exe_post.add_argument(
-    "--conf-post",
-    nargs="*",
-    type=str,
-    dest="conf_post",
-    metavar="path",
-    help="path to conf_post file (**.conf-post)\n\n"
-    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
-    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
-    + "\n ",
+    help="path to conf file (**.conf**)" + "\n ",
   )
   subparser_exe_post.add_argument(
     "--cluster",
@@ -433,35 +407,23 @@ def cli_execution():
     formatter_class=argparse.RawTextHelpFormatter,
     help="command for copying simulation (or post-process) results",
     description="command 'liggghts copy': to copy simulation results\n\n"
-    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    + "required argument is conf file (**.conf**. '--conf').\n"
     + "default: to copy movie .mp4 file into gsync directory file.\n"
     + "(see sub-option 'vibpump liggghts copy -h')\n",
   )
   subparser_copy.add_argument(
-    "--conf-sim",
+    "--conf",
     nargs="*",
     type=str,
-    dest="conf_sim",
     metavar="path",
-    help="path to conf-sim file (**.conf-sim)" + "\n ",
-  )
-  subparser_copy.add_argument(
-    "--conf-post",
-    nargs="*",
-    type=str,
-    dest="conf_post",
-    metavar="path",
-    help="path to conf_post file (**.conf-post)\n\n"
-    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
-    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
-    + "\n ",
+    help="path to conf file (**.conf**)" + "\n ",
   )
   subparser_copy.add_argument(
     "--movie", action="store_true", help="flag to copy movie of simulation" + "\n ",
   )
   subparser_copy.add_argument(
-    "--log-liggghts",
-    dest="log_liggghts",
+    "--log-sim",
+    dest="log_sim",
     action="store_true",
     help="flag to copy log of simulation" + "\n ",
   )
@@ -477,43 +439,33 @@ def cli_execution():
   subparser_log = subparsers_liggghts.add_parser(
     "log",
     formatter_class=argparse.RawTextHelpFormatter,
-    help="command for showing simulation (or post-process) log",
-    description="command 'liggghts log': to show log\n\n"
-    + "required argument is conf-sim file (**.conf-sim. '--conf-sim').\n"
+    help="command for showing setting, log ...",
+    description="command 'liggghts log': to show setting, log ... \n\n"
+    + "required argument is conf file (**.conf**. '--conf').\n"
     + "default: to show 15 lines of tail part of simulation log file.\n"
     + "(see sub-option 'vibpump liggghts log -h')\n",
   )
   subparser_log.add_argument(
-    "--conf-sim",
+    "--conf",
     nargs="*",
     type=str,
-    dest="conf_sim",
     metavar="path",
-    help="path to conf-sim file (**.conf-sim)" + "\n ",
+    help="path to conf file (**.conf**)" + "\n ",
   )
   subparser_log.add_argument(
-    "--conf-post",
-    nargs="*",
-    type=str,
-    dest="conf_post",
-    metavar="path",
-    help="path to conf_post file (**.conf-post)\n\n"
-    + "if this arg exists, this will overwrite '--conf-sim' args.\n"
-    + "target '**' (**.conf-post) must be same as '--conf-sim' (**.conf-sim)\n"
-    + "\n ",
+    "--type",
+    choices=["log-sim", "log-post", "log-sim-all", "log-post-all"],
+    help="log type" + "\n ",
   )
   subparser_log.add_argument(
     "--head", action="store_true", help="flag to show head part of log file" + "\n ",
-  )
-  subparser_log.add_argument(
-    "--process", action="store_true", help="flag to show post-process log file" + "\n ",
   )
   subparser_log.add_argument(
     "--line",
     type=int,
     metavar="line",
     default=None,
-    help="how many lines of log file to be shown (default: 15)" + "\n ",
+    help="how many lines of log file to be shown (default: 25)" + "\n ",
   )
   subparser_log.set_defaults(call=call_liggghts_log)
 

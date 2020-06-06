@@ -509,7 +509,7 @@ def write_ini_all_cluster(
   IO.write("#$ -t 1-{0}:1\n".format(str(len(jobs))))
   IO.write("#$ -o {0}\n".format(jobs_dir + "/out_sim"))
   IO.write("#$ -e {0}\n".format(jobs_dir + "/err_sim"))
-  IO.write("#$ -N {0}\n\n".format(conf))
+  IO.write("#$ -N {0}\n\n".format(pathlib.Path(conf).name))
   IO.write(list_str)
   IO.write("N_SIM=${N_SIM_LIST[$SGE_TASK_ID-1]}\n")
   IO.write("N_POST=${N_POST_LIST[$SGE_TASK_ID-1]}\n")

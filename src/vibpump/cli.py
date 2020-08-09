@@ -18,7 +18,7 @@ from imgproc import api
 from vibpump import image
 
 
-def call_image(
+def call_image_process(
   args: argparse.Namespace, parser: argparse.ArgumentParser, opt_args: List[str]
 ):
   """call function when image command is given
@@ -95,7 +95,7 @@ def cli_execution():
     + "(see sub-option 'vibpump image -h')\n",
   )
 
-  parser.set_defaults(call=call_image)
+  parser.set_defaults(call=call_image_process)
   parser.add_argument(
     "--movie", nargs="*", type=str, metavar="path", help="movie file path" + "\n ",
   )

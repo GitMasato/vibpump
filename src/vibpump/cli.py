@@ -57,15 +57,15 @@ def call_image_process(
 
     for opt in opt_args:
       if opt == "--binarize":
-        input_data = api.binarize(input_data)
+        input_data = api.binarize(target_list=input_data)
       elif opt == "--capture":
-        input_data = api.capture(input_data)
+        input_data = api.capture(target_list=input_data)
       elif opt == "--crop":
-        input_data = api.crop(input_data)
+        input_data = api.crop(target_list=input_data)
       elif opt == "--measure":
         input_data = image.measure(input_data, movie_list)
       elif opt == "--rotate":
-        input_data = api.rotate(input_data)
+        input_data = api.rotate(target_list=input_data)
 
   if set(["--graph"]) & set(opt_args):
     image.graph()

@@ -1,12 +1,13 @@
 """cli command for supporting vibpump project.
 
-image commad: (see usage using '-h' option)
-basic required arguments is movie name and process name.
+basic required arguments are movie name and process name.
 if no movie and process is given, error will be raised.
 
 output data (after image process) will be generated in
 'cv2/target-noExtension/process-name/target' directory under current location
 (e.g. (test.mp4) ./cv2/test/binarized/test.png).
+
+see usage using '-h' option
 
 """
 import argparse
@@ -21,8 +22,7 @@ from vibpump import image
 def call_image_process(
   args: argparse.Namespace, parser: argparse.ArgumentParser, opt_args: List[str]
 ):
-  """call function when image command is given
-  """
+  """call function when image command is given"""
   items = [value for key, value in args.__dict__.items() if key != "call"]
   if not [item for item in items if (item is not None) and (item is not False)]:
     sys.exit(parser.parse_args(["image", "--help"]))
@@ -38,7 +38,7 @@ def call_image_process(
             movie_list.append(movie)
 
     if not movie_list:
-      sys.exit("no movie exists!")
+      sys.exit("no movie file exists!")
 
     if args.type:
       if args.type == "binarized":
@@ -68,12 +68,11 @@ def call_image_process(
         input_data = api.rotate(target_list=input_data)
 
   if set(["--graph"]) & set(opt_args):
-    image.graph()
+    image.graph(args.movie)
 
 
 def cli_execution():
-  """read, parse, and execute cli arguments
-  """
+  """read, parse, and execute cli arguments"""
   parser = argparse.ArgumentParser(
     prog="vibpump.py",
     formatter_class=argparse.RawTextHelpFormatter,
@@ -89,15 +88,19 @@ def cli_execution():
     + "if pre-processed data does not exist, image process is not executed.\n\n"
     + "whether '--type' is selected or not, movie file itself must exist.\n"
     + "if it does not exist, image process is not executed except for '--graph'.\n"
-    + "'--measure' option creates '**_vib.csv' that cannot be given to other process.\n"
-    + "'--graph' visualize .csv file. if any '_**vib.csv' exists in 'cv2' directory,\n"
-    + "'--graph' process can run and does not require movie or pre-processed data.\n\n"
+    + "'--measure' creates '**_height.csv' that can be given only to '--graph',.\n"
+    + "visualizing .csv file. if multiple '**_height.csv' are given,\n"
+    + "'--graph' creates one figure containing multiple data in 'cv2' directory.\n\n"
     + "(see sub-option 'vibpump image -h')\n",
   )
 
   parser.set_defaults(call=call_image_process)
   parser.add_argument(
-    "--movie", nargs="*", type=str, metavar="path", help="movie file path" + "\n ",
+    "--movie",
+    nargs="*",
+    type=str,
+    metavar="path",
+    help="movie file path" + "\n ",
   )
   parser.add_argument(
     "--type",
@@ -108,7 +111,9 @@ def cli_execution():
     + "under current location is given as input.\n",
   )
   parser.add_argument(
-    "--binarize", action="store_true", help="to enable binarize process" + "\n ",
+    "--binarize",
+    action="store_true",
+    help="to enable binarize process" + "\n ",
   )
   parser.add_argument(
     "--capture",
@@ -117,7 +122,9 @@ def cli_execution():
     + "this process should be executed first.\n",
   )
   parser.add_argument(
-    "--crop", action="store_true", help="to enable crop process" + "\n ",
+    "--crop",
+    action="store_true",
+    help="to enable crop process" + "\n ",
   )
   parser.add_argument(
     "--graph",
@@ -133,7 +140,9 @@ def cli_execution():
     + "using first movie file name. this should be executed just after 'binarize'.\n",
   )
   parser.add_argument(
-    "--rotate", action="store_true", help="to enable rotate process" + "\n ",
+    "--rotate",
+    action="store_true",
+    help="to enable rotate process" + "\n ",
   )
 
   if len(sys.argv) <= 1:
@@ -144,8 +153,7 @@ def cli_execution():
 
 
 def main() -> None:
-  """cli command main function
-  """
+  """cli command main function"""
   cli_execution()
 
 

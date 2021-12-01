@@ -8,6 +8,9 @@ import numpy
 import math
 import pathlib
 import re
+import matplotlib
+
+matplotlib.use('tkagg')
 from matplotlib import pyplot
 from typing import List, Tuple, Optional
 
@@ -196,7 +199,7 @@ def measure(target_list: List[str], movie_list: List[str]):
           continue
 
         img = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
-        cut = img[:bottom, tube_pos[0] : tube_pos[1]]
+        cut = img[:bottom, tube_pos[0]:tube_pos[1]]
         height = bottom
 
         for idx, y in enumerate(cut):
@@ -284,9 +287,9 @@ def measure(target_list: List[str], movie_list: List[str]):
 
 
 def select_referene_length(
-  movie: str,
-  frames: int,
-  cap: cv2.VideoCapture,
+    movie: str,
+    frames: int,
+    cap: cv2.VideoCapture,
 ) -> Optional[float]:
   """select(get) reference length using GUI window
 
@@ -343,23 +346,23 @@ def select_referene_length(
 
     if help_exists:
       add_texts_lower_right(
-        img,
-        [
-          "s:save if selected",
-          "h:on/off help",
-          "c:clear",
-          "click:select",
-          "q/esc:abort",
-        ],
+          img,
+          [
+              "s:save if selected",
+              "h:on/off help",
+              "c:clear",
+              "click:select",
+              "q/esc:abort",
+          ],
       )
       add_texts_upper_left(
-        img,
-        [
-          "[measure]",
-          "select line and mm/pixel",
-          "frame: {0}".format(frame_now),
-          "mm/line: {0}".format(mm_per_line),
-        ],
+          img,
+          [
+              "[measure]",
+              "select line and mm/pixel",
+              "frame: {0}".format(frame_now),
+              "mm/line: {0}".format(mm_per_line),
+          ],
       )
       add_texts_lower_left(img, warning_message)
 
@@ -369,14 +372,10 @@ def select_referene_length(
     if k == ord("s"):
       if len(points) == 2:
         cv2.destroyAllWindows()
-        reference_length = math.sqrt(
-          (points[1][0] - points[0][0]) ** 2 + (points[1][1] - points[0][1]) ** 2
-        )
-        print(
-          "'s' is pressed. mm/pixel is saved ({0:.2f})".format(
-            mm_per_line / reference_length
-          )
-        )
+        reference_length = math.sqrt((points[1][0] - points[0][0])**2 +
+                                     (points[1][1] - points[0][1])**2)
+        print("'s' is pressed. mm/pixel is saved ({0:.2f})".format(mm_per_line /
+                                                                   reference_length))
         return mm_per_line / reference_length
       else:
         print("line is not selected yet")
@@ -408,8 +407,8 @@ def select_referene_length(
 
 
 def select_reference_place(
-  directory: str, picture_list: List[str]
-) -> Optional[Tuple[int, Tuple[int, int], int]]:
+    directory: str,
+    picture_list: List[str]) -> Optional[Tuple[int, Tuple[int, int], int]]:
   """select(get) three reference lines and threshold using GUI window
 
     Args:
@@ -462,7 +461,7 @@ def select_reference_place(
         points.clear()
         warning_message = ["x_2 must be > x_1"]
       else:
-        cut = img[: points[0][1], points[1][0] : points[2][0]]
+        cut = img[:points[0][1], points[1][0]:points[2][0]]
         for idx, y in enumerate(cut):
           white_size = numpy.count_nonzero(y)
           white_area = white_size / len(y) * 100.0
@@ -480,23 +479,23 @@ def select_reference_place(
 
     if help_exists:
       add_texts_lower_right(
-        img,
-        [
-          "s:save if selected",
-          "h:on/off help",
-          "c:clear",
-          "click:select",
-          "q/esc:abort",
-        ],
+          img,
+          [
+              "s:save if selected",
+              "h:on/off help",
+              "c:clear",
+              "click:select",
+              "q/esc:abort",
+          ],
       )
       add_texts_upper_left(
-        img,
-        [
-          "[measure]",
-          "select area",
-          "frame: {0}".format(frame_now),
-          "threshold: {0}%".format(threshold),
-        ],
+          img,
+          [
+              "[measure]",
+              "select area",
+              "frame: {0}".format(frame_now),
+              "threshold: {0}%".format(threshold),
+          ],
       )
       add_texts_lower_left(img, warning_message)
 
@@ -506,11 +505,8 @@ def select_reference_place(
     if k == ord("s"):
       if len(points) == 3:
         cv2.destroyAllWindows()
-        print(
-          "'s' is pressed. area and threshold are saved ({0},{1},{2})".format(
-            points[0][1], (points[1][0], points[2][0]), threshold
-          )
-        )
+        print("'s' is pressed. area and threshold are saved ({0},{1},{2})".format(
+            points[0][1], (points[1][0], points[2][0]), threshold))
         return (points[0][1], (points[1][0], points[2][0]), threshold)
       else:
         print("area and threshold are not selected yet")

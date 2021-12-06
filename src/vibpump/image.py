@@ -339,7 +339,7 @@ def select_referene_length(
     elif len(points) == 2:
       cv2.drawMarker(img, points[0], line_color, markerSize=10)
       cv2.drawMarker(img, points[1], line_color, markerSize=10)
-      cv2.line(img, points[0], points[1], line_color, 2)
+      cv2.line(img, points[0], points[1], line_color, 8)
     elif len(points) == 3:
       points.clear()
       warning_message = ["3rd is not accepted"]
@@ -452,10 +452,10 @@ def select_reference_place(
     W, H = img.shape[1], img.shape[0]
 
     if len(points) == 1:
-      cv2.line(img, (0, points[0][1]), (W - 1, points[0][1]), white, 2)
+      cv2.line(img, (0, points[0][1]), (W - 1, points[0][1]), white, 8)
     elif len(points) == 2:
-      cv2.line(img, (0, points[0][1]), (W - 1, points[0][1]), white, 2)
-      cv2.line(img, (points[1][0], 0), (points[1][0], H - 1), white, 2)
+      cv2.line(img, (0, points[0][1]), (W - 1, points[0][1]), white, 8)
+      cv2.line(img, (points[1][0], 0), (points[1][0], H - 1), white, 8)
     elif len(points) == 3:
       if points[2][0] <= points[1][0]:
         points.clear()
@@ -466,12 +466,12 @@ def select_reference_place(
           white_size = numpy.count_nonzero(y)
           white_area = white_size / len(y) * 100.0
           if threshold <= white_area:
-            cv2.line(img, (points[1][0], idx), (points[2][0], idx), white, 2)
+            cv2.line(img, (points[1][0], idx), (points[2][0], idx), white, 8)
             break
 
-        cv2.line(img, (0, points[0][1]), (W - 1, points[0][1]), white, 2)
-        cv2.line(img, (points[1][0], 0), (points[1][0], H - 1), white, 2)
-        cv2.line(img, (points[2][0], 0), (points[2][0], H - 1), white, 2)
+        cv2.line(img, (0, points[0][1]), (W - 1, points[0][1]), white, 8)
+        cv2.line(img, (points[1][0], 0), (points[1][0], H - 1), white, 8)
+        cv2.line(img, (points[2][0], 0), (points[2][0], H - 1), white, 8)
 
     elif len(points) == 4:
       points.clear()

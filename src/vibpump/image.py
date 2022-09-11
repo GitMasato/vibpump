@@ -169,7 +169,7 @@ def measure(target_list: List[str], movie_list: List[str]):
 
     cap = cv2.VideoCapture(target_tuple[1])
     W, H, frames, fps = get_movie_info(cap)
-    mm_per_pixel = select_referene_length(target_tuple[1], frames, cap)
+    mm_per_pixel = select_reference_length(target_tuple[1], frames, cap)
     if mm_per_pixel is None:
       continue
 
@@ -187,7 +187,7 @@ def measure(target_list: List[str], movie_list: List[str]):
     pathlib.Path(target_tuple[2]).resolve().mkdir(parents=True, exist_ok=True)
     output = target_tuple[2] + "/" + pathlib.Path(target_tuple[1]).stem + "_height.csv"
 
-    with open(output, "w") as f:
+    with open(output, "w", newline="") as f:
 
       w = csv.writer(f)
       w.writerow(["time_s", "height_mm"])
@@ -241,7 +241,7 @@ def measure(target_list: List[str], movie_list: List[str]):
 
 #     cap = cv2.VideoCapture(target_tuple[1])
 #     W, H, frames, fps = get_movie_info(cap)
-#     mm_per_pixel = select_referene_length(target_tuple[0], frames, cap)
+#     mm_per_pixel = select_reference_length(target_tuple[0], frames, cap)
 #     if mm_per_pixel is None:
 #       continue
 
@@ -286,7 +286,7 @@ def measure(target_list: List[str], movie_list: List[str]):
 #       )
 
 
-def select_referene_length(
+def select_reference_length(
     movie: str,
     frames: int,
     cap: cv2.VideoCapture,

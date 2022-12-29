@@ -657,7 +657,7 @@ def generate_script_multiple_data(file_list: List[str]):
   text_2 = text_1.rstrip("generate_script_multiple_data(input_list)\n")
   text_2 += "\n\ninput_list = ["
   for file in file_list:
-    text_2 += "\n  '{0}',".format(file)
+    text_2 += "\n  r'{0}',".format(file)
   text_2 += "\n]"
   text_2 += "\ngraph_multiple(input_list)\n"
   fig_stem = "__".join([pathlib.Path(f).stem.strip("_height")[:10] for f in file_list])
@@ -670,7 +670,7 @@ def generate_script_single_data(file: str):
   text_1 = "import csv\nimport pathlib\nfrom matplotlib import pyplot\n\n\n"
   text_1 += inspect.getsource(graph_single)
   text_2 = text_1.rstrip("generate_script_single_data(file_name)\n")
-  text_3 = text_2 + "\n\ninput = '{0}'".format(file)
+  text_3 = text_2 + "\n\ninput = r'{0}'".format(file)
   text_4 = text_3 + "\ngraph_single(input)"
   helper_path = pathlib.Path(file.replace(".csv", ".py"))
   helper_path.write_text(text_4 + "\n")

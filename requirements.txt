@@ -16,7 +16,7 @@ numpy==1.18.3
 opencv-python==4.2.0.34
 pathspec==0.8.0
 Pillow==7.1.2
-pip==20.1
+pip==23.3
 pkg-resources==0.0.0
 pycodestyle==2.5.0
 pyflakes==2.1.1

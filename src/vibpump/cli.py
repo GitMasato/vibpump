@@ -11,7 +11,7 @@ see usage using '-h' option
 
 """
 import argparse
-import imghdr
+import filetype
 import pathlib
 import sys
 from typing import List
@@ -33,9 +33,8 @@ def call_image_process(args: argparse.Namespace, parser: argparse.ArgumentParser
     if args.movie:
       for movie in args.movie:
         movie_path = pathlib.Path(movie)
-        if movie_path.is_file():
-          if imghdr.what(movie) is None:
-            movie_list.append(movie)
+        if movie_path.is_file() and filetype.is_video(movie):
+          movie_list.append(movie)
 
     if not movie_list:
       sys.exit("no movie file exists!")

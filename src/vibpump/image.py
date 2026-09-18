@@ -2,7 +2,7 @@
 """
 import csv
 import cv2
-import imghdr
+import filetype
 import inspect
 import numpy
 import math
@@ -146,7 +146,7 @@ def get_input_list(target_list: List[str], input_type: str) -> List[str]:
                 path_list.append(str(input_path))
                 continue
 
-            if imghdr.what(file_list[0]) is not None:
+            if filetype.is_image(file_list[0]):
                 path_list.append(str(input_path))
             else:
                 path_list.append(str(file_list[0]))
@@ -164,7 +164,7 @@ def measure(target_list: List[str], movie_list: List[str]):
         target_list (List[str]): list of binarized data of movie
         movie_list (List[str]): list of movie
     """
-    regex = re.compile("\d{8,10}")
+    regex = re.compile(r"\d{8,10}")
     target_tuple_list: List[Tuple[str, str, str]] = []
     cv2_path = pathlib.Path(pathlib.Path.cwd() / "cv2")
 
@@ -250,7 +250,7 @@ def measure(target_list: List[str], movie_list: List[str]):
 #   print("no movie to be read exists!")
 #   return None
 
-# regex = re.compile("\d{8,10}")
+# regex = re.compile(r"\d{8,10}")
 # output_name = str(cv2_path) + "/" + pathlib.Path(movie_list[0]).stem + "_vib.csv"
 # with open(output_name, "w") as f:
 
@@ -580,7 +580,7 @@ def graph(movie_list: List[str]):
             movie_stem = movie_path.stem
             height_file = "{0}_height.csv".format(movie_stem)
 
-            if (movie_path.is_file()) and (imghdr.what(movie) is None):
+            if (movie_path.is_file()) and (filetype.is_video(movie)):
                 measured_path = pathlib.Path(
                     cv2_path / movie_stem / "measured" / height_file
                 )
@@ -627,8 +627,8 @@ def graph_multiple(input_list):
             label_name = pathlib.Path(input).stem.strip("_height")
             pyplot.plot(time_list, height_list, label=label_name)
 
-    pyplot.xlabel("time  $\it{s}$")
-    pyplot.ylabel("climbing height $\it{mm}$")
+    pyplot.xlabel(r"time  $\it{s}$")
+    pyplot.ylabel(r"climbing height $\it{mm}$")
     pyplot.xlim(xmin=0)
     # pyplot.xticks([0, 100, 200, 300], [0, 100, 200, 300], rotation=0)
     pyplot.ylim(ymin=0)
@@ -668,8 +668,8 @@ def graph_single(input):
         pyplot.rcParams["ytick.direction"] = "in"
         pyplot.figure(figsize=(4.5, 3), dpi=300)
         pyplot.plot(time_list, height_list)
-        pyplot.xlabel("time  $\it{s}$")
-        pyplot.ylabel("climbing height $\it{mm}$")
+        pyplot.xlabel(r"time  $\it{s}$")
+        pyplot.ylabel(r"climbing height $\it{mm}$")
         pyplot.xlim(xmin=0)
         # pyplot.xticks([0, 100, 200, 300], [0, 100, 200, 300], rotation=0)
         pyplot.ylim(ymin=0)
